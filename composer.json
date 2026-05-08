@@ -38,6 +38,12 @@
     "test": "phpunit --testsuite unit",
     "test:native-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite native-smoke",
     "test:coverage": "XDEBUG_MODE=coverage phpunit --testsuite unit --coverage-text",
-    "validate-project": "composer validate --strict"
+    "validate-project": "composer validate --strict",
+    "verify": [
+      "@validate-project",
+      "@lint",
+      "@test:coverage",
+      "@test:native-smoke"
+    ]
   }
 }
