@@ -14,7 +14,7 @@ Use Composer scripts as stable entry points:
 - `composer test`: run tests.
 - `composer lint`: run static analysis and style checks.
 - `composer cs-fix`: apply automatic style fixes.
-- `composer validate`: verify package metadata.
+- `composer validate-project`: verify package metadata with strict validation.
 
 Prefer Composer scripts over ad hoc one-off commands.
 

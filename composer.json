@@ -29,6 +29,7 @@
       "phpstan analyse",
       "phpcs"
     ],
-    "test": "phpunit"
+    "test": "phpunit",
+    "validate-project": "composer validate --strict"
   }
 }
