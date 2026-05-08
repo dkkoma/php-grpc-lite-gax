@@ -4,10 +4,6 @@
 
 This repository hosts a PHP Composer library around `google/gax` `TransportInterface`, targeting FrankenPHP Go gRPC and `php-grpc-lite`. Keep production code under `src/`, tests under `tests/`, and design documents under `docs/`. Composer metadata, autoloading, and scripts belong in `composer.json`. Use `docs/issues/open/` for active findings and move resolved items to `docs/issues/closed/`. Prefer one Markdown file per issue, named like `transport-error-mapping.md`.
 
-## Architecture Overview
-
-The intended dependency direction is `TransportInterface` (GAX) -> `AbstractGrpcTransport` -> `UnaryBackend` -> concrete backend. Backends include `FrankenGrpcBackend` for FrankenPHP grpc-go, `GrpcLiteBackend` for `php-grpc-lite`/nghttp2, and `FakeBackend` for tests. Keep GAX-facing behavior above the backend interface; backends should only handle execution and protocol mapping.
-
 ## Build, Test, and Development Commands
 
 Use the Dev Container when the host lacks PHP or Composer; it provides PHP 8.4+ and Composer.
@@ -17,7 +13,6 @@ Use Composer scripts as stable entry points:
 - `composer install`: install dependencies.
 - `composer test`: run tests.
 - `composer lint`: run static analysis and style checks.
-- `composer cs-fix`: apply automatic formatting.
 - `composer validate`: verify package metadata.
 
 Prefer Composer scripts over ad hoc one-off commands.
@@ -32,7 +27,7 @@ Use PHPUnit or Pest consistently once chosen. Test files should mirror `src/` pa
 
 ## Design Docs & Issue Tracking
 
-Put architecture notes, API sketches, and tradeoff records in `docs/`. Track work and reviewer findings under `docs/issues/open/`. Each issue should include context, impact, proposed fix, and state. Move it to `docs/issues/closed/` only after implementation and verification.
+Keep architecture notes, API sketches, and tradeoff records in `docs/design.md`. Update it to the latest current design only; avoid stale historical alternatives. Every user instruction, work unit, and reviewer finding must have its own Markdown issue file; do not collapse multiple findings into one issue. Create active items under `docs/issues/open/`; after implementation and verification, move the file to `docs/issues/closed/` and update its state. Each issue should include state, source, context, impact, proposed fix, fix summary, and verification.
 
 ## Review Workflow
 
@@ -40,4 +35,4 @@ After implementation, run focused reviews before closing work. At minimum, inclu
 
 ## Commit & Pull Request Guidelines
 
-There is no Git history yet. Use concise imperative commits, optionally with Conventional Commit prefixes such as `feat:`, `fix:`, `test:`, and `docs:`. Pull requests should summarize behavior changes, list verification commands, link related `docs/issues` files, and call out any public API or compatibility impact.
+Use concise imperative commits, optionally with Conventional Commit prefixes such as `feat:`, `fix:`, `test:`, and `docs:`. Pull requests should summarize behavior changes, list verification commands, link related `docs/issues` files, and call out any public API or compatibility impact.
