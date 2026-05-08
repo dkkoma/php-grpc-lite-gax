@@ -16,6 +16,8 @@ final class FakeBackend implements UnaryBackend
     /** @var list<UnaryResponse> */
     private array $responses = [];
 
+    private bool $closed = false;
+
     public function enqueueResponse(UnaryResponse $response): void
     {
         $this->responses[] = $response;
@@ -24,6 +26,10 @@ final class FakeBackend implements UnaryBackend
     #[\Override]
     public function call(UnaryRequest $request): UnaryResponse
     {
+        if ($this->closed) {
+            throw new \RuntimeException('FakeBackend is closed.');
+        }
+
         $this->requests[] = $request;
 
         if ($this->responses === []) {
@@ -31,6 +37,12 @@ final class FakeBackend implements UnaryBackend
         }
 
         return array_shift($this->responses);
+    }
+
+    #[\Override]
+    public function close(): void
+    {
+        $this->closed = true;
     }
 
     /**
@@ -60,5 +72,10 @@ final class FakeBackend implements UnaryBackend
         if ($this->responses !== []) {
             throw new \RuntimeException('FakeBackend has pending unary responses.');
         }
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->closed;
     }
 }

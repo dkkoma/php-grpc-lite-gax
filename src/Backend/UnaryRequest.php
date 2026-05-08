@@ -43,5 +43,4 @@ final readonly class UnaryRequest
     {
         return '/' . $this->service . '/' . $this->method;
     }
-
 }

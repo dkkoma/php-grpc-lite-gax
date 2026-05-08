@@ -29,6 +29,8 @@ Google\ApiCore\Transport\TransportInterface
 
 `UnaryResponse` contains the serialized protobuf response payload, canonical gRPC status, status message, and response metadata. Successful responses are decoded by `AbstractGrpcTransport`; non-OK responses are mapped to `Google\ApiCore\ApiException`.
 
+`AbstractGrpcTransport::close()` delegates lifecycle cleanup to the backend. Per-call cancellation is not part of the current unary backend contract; it should be designed when a concrete backend can expose cancellable in-flight calls consistently.
+
 ## Validation Boundary
 
 Shared value objects validate backend-facing invariants early: non-empty service/method names, valid metadata shape, positive timeouts, and canonical gRPC status values. Concrete backends may add protocol-specific validation, but they should not redefine these shared invariants.

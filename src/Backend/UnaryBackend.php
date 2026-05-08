@@ -7,4 +7,6 @@ namespace GrpcLiteGax\Backend;
 interface UnaryBackend
 {
     public function call(UnaryRequest $request): UnaryResponse;
+
+    public function close(): void;
 }

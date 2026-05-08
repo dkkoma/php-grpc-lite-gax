@@ -62,12 +62,12 @@ abstract class AbstractGrpcTransport implements TransportInterface
         $request = $this->buildUnaryRequest($call, $options);
         $promise = null;
 
-        $promise = new Promise(function () use (&$promise, $call, $request): void {
+        $promise = new Promise(function () use (&$promise, $call, $options, $request): void {
             \assert($promise instanceof Promise);
 
             try {
                 $response = $this->backend->call($request);
-                $promise->resolve($this->resolveUnaryResponse($call, $response));
+                $promise->resolve($this->resolveUnaryResponse($call, $options, $response));
             } catch (\Throwable $exception) {
                 $promise->reject($exception);
             }
@@ -79,6 +79,7 @@ abstract class AbstractGrpcTransport implements TransportInterface
     #[\Override]
     public function close(): void
     {
+        $this->backend->close();
     }
 
     /**
@@ -136,7 +137,11 @@ abstract class AbstractGrpcTransport implements TransportInterface
                 throw new ValidationException('Headers must be an array<string, string|list<string>>.');
             }
 
-            $metadata[strtolower($name)] = $this->normalizeMetadataValues($values);
+            $normalizedName = strtolower($name);
+            $metadata[$normalizedName] = array_merge(
+                $metadata[$normalizedName] ?? [],
+                $this->normalizeMetadataValues($values),
+            );
         }
 
         return $metadata;
@@ -173,7 +178,10 @@ abstract class AbstractGrpcTransport implements TransportInterface
         return $timeoutMillis / 1000;
     }
 
-    private function resolveUnaryResponse(Call $call, UnaryResponse $response): Message
+    /**
+     * @param array<mixed> $options
+     */
+    private function resolveUnaryResponse(Call $call, array $options, UnaryResponse $response): Message
     {
         if ($response->grpcStatusCode !== GrpcStatusCode::OK) {
             throw ApiException::createFromApiResponse(
@@ -191,6 +199,15 @@ abstract class AbstractGrpcTransport implements TransportInterface
         /** @var Message $message */
         $message = new $decodeType();
         $message->mergeFromString($response->payload);
+
+        if (isset($options['metadataCallback'])) {
+            $metadataCallback = $options['metadataCallback'];
+            if (!is_callable($metadataCallback)) {
+                throw new ValidationException('The "metadataCallback" option must be callable.');
+            }
+
+            $metadataCallback($response->metadata);
+        }
 
         return $message;
     }

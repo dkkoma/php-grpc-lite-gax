@@ -86,5 +86,4 @@ final class FakeBackendTest extends TestCase
 
         $backend->call(new UnaryRequest('service.v1.Service', 'Method', 'payload'));
     }
-
 }
