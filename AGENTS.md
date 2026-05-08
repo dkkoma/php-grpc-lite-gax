@@ -10,13 +10,15 @@ The intended dependency direction is `TransportInterface` (GAX) -> `AbstractGrpc
 
 ## Build, Test, and Development Commands
 
-Once `composer.json` exists, use Composer scripts as stable entry points:
+Use the Dev Container when the host lacks PHP or Composer; it provides PHP 8.4+ and Composer.
+
+Use Composer scripts as stable entry points:
 
 - `composer install`: install dependencies.
 - `composer test`: run tests.
 - `composer lint`: run static analysis and style checks.
 - `composer cs-fix`: apply automatic formatting.
-- `composer validate`: verify package metadata before publishing or tagging.
+- `composer validate`: verify package metadata.
 
 Prefer Composer scripts over ad hoc one-off commands.
 
