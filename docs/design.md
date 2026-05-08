@@ -31,9 +31,21 @@ Google\ApiCore\Transport\TransportInterface
 
 `AbstractGrpcTransport::close()` delegates lifecycle cleanup to the backend. Per-call cancellation is not part of the current unary backend contract; it should be designed when a concrete backend can expose cancellable in-flight calls consistently.
 
+## FrankenGrpcBackend
+
+`FrankenGrpcBackend` will be the FrankenPHP bridge to grpc-go. It should depend only on `UnaryBackend` inputs and outputs, not on GAX `Call` objects. Request mapping sends `UnaryRequest::path()` as the fully qualified gRPC method path, `payload` as the serialized protobuf request body, metadata as lowercase gRPC metadata, and `timeoutSeconds` as the per-call deadline when present.
+
+Response mapping converts grpc-go response bytes into `UnaryResponse::payload`, trailers/headers into response metadata, and grpc-go canonical status into `GrpcStatusCode` plus status message. Transport-level failures that do not produce a gRPC status should map to `GrpcStatusCode::UNAVAILABLE` unless a more precise canonical status is available.
+
+The backend owns grpc-go channel/client lifecycle. `close()` must release backend resources and make later calls fail predictably. Per-call cancellation remains outside the current contract.
+
 ## Validation Boundary
 
 Shared value objects validate backend-facing invariants early: non-empty service/method names, valid metadata shape, positive timeouts, and canonical gRPC status values. Concrete backends may add protocol-specific validation, but they should not redefine these shared invariants.
+
+## Public Boundary
+
+The current backend and abstract transport types are internal implementation contracts. `UnaryBackend`, `UnaryRequest`, `UnaryResponse`, `GrpcStatusCode`, and `AbstractGrpcTransport` may change while the first concrete backends are being designed. Public stable APIs should be introduced around concrete transports or factories after the FrankenPHP and `php-grpc-lite` backend contracts have proven compatible.
 
 ## Current Scope
 

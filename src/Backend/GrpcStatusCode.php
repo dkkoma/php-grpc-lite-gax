@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace GrpcLiteGax\Backend;
 
+/**
+ * @internal
+ */
 enum GrpcStatusCode: int
 {
     case OK = 0;

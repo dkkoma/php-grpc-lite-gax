@@ -19,6 +19,9 @@ use GrpcLiteGax\Backend\UnaryResponse;
 use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
 
+/**
+ * @internal
+ */
 abstract class AbstractGrpcTransport implements TransportInterface
 {
     public function __construct(
