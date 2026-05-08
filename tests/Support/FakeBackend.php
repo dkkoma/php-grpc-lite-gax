@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GrpcLiteGax\Tests\Support;
 
+use GrpcLiteGax\Backend\BackendClosedException;
 use GrpcLiteGax\Backend\UnaryBackend;
 use GrpcLiteGax\Backend\UnaryRequest;
 use GrpcLiteGax\Backend\UnaryResponse;
@@ -27,7 +28,7 @@ final class FakeBackend implements UnaryBackend
     public function call(UnaryRequest $request): UnaryResponse
     {
         if ($this->closed) {
-            throw new \RuntimeException('FakeBackend is closed.');
+            throw new BackendClosedException();
         }
 
         $this->requests[] = $request;

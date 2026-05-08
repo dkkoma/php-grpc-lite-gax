@@ -12,16 +12,15 @@ use PHPUnit\Framework\TestCase;
 
 abstract class UnaryBackendContractTestCase extends TestCase
 {
-    /**
-     * @param list<UnaryResponse> $responses
-     */
-    abstract protected function createBackend(array $responses): UnaryBackend;
+    abstract protected function createBackendForOkUnary(UnaryResponse $response): UnaryBackend;
+
+    abstract protected function createBackendForStatus(UnaryResponse $response): UnaryBackend;
+
+    abstract protected function createBackendForLifecycle(): UnaryBackend;
 
     public function testBackendReturnsUnaryResponse(): void
     {
-        $backend = $this->createBackend([
-            new UnaryResponse('response-payload'),
-        ]);
+        $backend = $this->createBackendForOkUnary(new UnaryResponse('response-payload'));
 
         $response = $backend->call(new UnaryRequest('service.v1.Service', 'Method', 'request-payload'));
 
@@ -31,9 +30,9 @@ abstract class UnaryBackendContractTestCase extends TestCase
 
     public function testBackendPreservesNonOkUnaryResponse(): void
     {
-        $backend = $this->createBackend([
+        $backend = $this->createBackendForStatus(
             new UnaryResponse('', GrpcStatusCode::UNAVAILABLE, 'unavailable'),
-        ]);
+        );
 
         $response = $backend->call(new UnaryRequest('service.v1.Service', 'Method', 'request-payload'));
 
@@ -43,10 +42,21 @@ abstract class UnaryBackendContractTestCase extends TestCase
 
     public function testBackendCanBeClosed(): void
     {
-        $backend = $this->createBackend([]);
+        $backend = $this->createBackendForLifecycle();
 
+        $backend->close();
         $backend->close();
 
         $this->addToAssertionCount(1);
+    }
+
+    public function testBackendRejectsCallsAfterClose(): void
+    {
+        $backend = $this->createBackendForLifecycle();
+        $backend->close();
+
+        $this->expectException(\RuntimeException::class);
+
+        $backend->call(new UnaryRequest('service.v1.Service', 'Method', 'request-payload'));
     }
 }

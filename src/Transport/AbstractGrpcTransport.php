@@ -70,6 +70,12 @@ abstract class AbstractGrpcTransport implements TransportInterface
 
             try {
                 $response = $this->backend->call($request);
+            } catch (\Throwable $exception) {
+                $promise->reject($this->backendFailure($exception));
+                return;
+            }
+
+            try {
                 $promise->resolve($this->resolveUnaryResponse($call, $options, $response));
             } catch (\Throwable $exception) {
                 $promise->reject($exception);
@@ -140,6 +146,10 @@ abstract class AbstractGrpcTransport implements TransportInterface
                 throw new ValidationException('Headers must be an array<string, string|list<string>>.');
             }
 
+            if (!preg_match('/^[0-9a-z_.-]+$/', strtolower($name))) {
+                throw new ValidationException('Header names must use gRPC metadata characters.');
+            }
+
             $normalizedName = strtolower($name);
             $metadata[$normalizedName] = array_merge(
                 $metadata[$normalizedName] ?? [],
@@ -156,6 +166,10 @@ abstract class AbstractGrpcTransport implements TransportInterface
      */
     private function normalizeMetadataValues(array $values): array
     {
+        if (!array_is_list($values)) {
+            throw new ValidationException('Header values must be lists of strings.');
+        }
+
         $normalized = [];
         foreach ($values as $value) {
             if (!is_string($value)) {
@@ -178,7 +192,24 @@ abstract class AbstractGrpcTransport implements TransportInterface
             throw new ValidationException('The "timeoutMillis" option must be numeric.');
         }
 
+        if ($timeoutMillis <= 0) {
+            throw new ValidationException('The "timeoutMillis" option must be positive.');
+        }
+
         return $timeoutMillis / 1000;
+    }
+
+    private function backendFailure(\Throwable $exception): ApiException
+    {
+        $previous = $exception instanceof \Exception
+            ? $exception
+            : new \RuntimeException($exception->getMessage(), (int) $exception->getCode(), $exception);
+
+        return ApiException::createFromApiResponse(
+            $exception->getMessage(),
+            GrpcStatusCode::UNAVAILABLE->value,
+            previous: $previous,
+        );
     }
 
     /**

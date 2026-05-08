@@ -10,16 +10,28 @@ use GrpcLiteGax\Tests\Support\FakeBackend;
 
 final class FakeBackendContractTest extends UnaryBackendContractTestCase
 {
-    /**
-     * @param list<UnaryResponse> $responses
-     */
     #[\Override]
-    protected function createBackend(array $responses): UnaryBackend
+    protected function createBackendForOkUnary(UnaryResponse $response): UnaryBackend
+    {
+        return $this->fakeBackendWith($response);
+    }
+
+    #[\Override]
+    protected function createBackendForStatus(UnaryResponse $response): UnaryBackend
+    {
+        return $this->fakeBackendWith($response);
+    }
+
+    #[\Override]
+    protected function createBackendForLifecycle(): UnaryBackend
+    {
+        return new FakeBackend();
+    }
+
+    private function fakeBackendWith(UnaryResponse $response): FakeBackend
     {
         $backend = new FakeBackend();
-        foreach ($responses as $response) {
-            $backend->enqueueResponse($response);
-        }
+        $backend->enqueueResponse($response);
 
         return $backend;
     }
