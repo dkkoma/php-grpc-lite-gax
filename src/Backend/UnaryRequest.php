@@ -35,7 +35,7 @@ final readonly class UnaryRequest
             throw new \InvalidArgumentException('method must be a protobuf method name.');
         }
 
-        MetadataValidator::assertMetadata($this->metadata);
+        MetadataValidator::assertRequestMetadata($this->metadata);
 
         if (
             $this->timeoutSeconds !== null

@@ -18,7 +18,7 @@ final readonly class UnaryResponse
         public string $statusMessage = '',
         public array $metadata = [],
     ) {
-        MetadataValidator::assertMetadata($this->metadata);
+        MetadataValidator::assertResponseMetadata($this->metadata);
     }
 
     public function isOk(): bool

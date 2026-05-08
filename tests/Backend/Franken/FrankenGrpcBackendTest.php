@@ -48,7 +48,7 @@ final class FrankenGrpcBackendTest extends TestCase
             payload: '',
             statusCode: GrpcStatusCode::UNAVAILABLE,
             statusMessage: 'unavailable',
-            metadata: ['status-detail' => ['value']],
+            metadata: ['grpc-status-details-bin' => ['value']],
         ));
         $backend = new FrankenGrpcBackend($bridge);
 
@@ -56,7 +56,7 @@ final class FrankenGrpcBackendTest extends TestCase
 
         self::assertSame(GrpcStatusCode::UNAVAILABLE, $response->grpcStatusCode);
         self::assertSame('unavailable', $response->statusMessage);
-        self::assertSame(['status-detail' => ['value']], $response->metadata);
+        self::assertSame(['grpc-status-details-bin' => ['value']], $response->metadata);
     }
 
     public function testCloseDelegatesToBridgeAndRejectsLaterCalls(): void

@@ -21,6 +21,6 @@ final readonly class FrankenGrpcResponse
         public string $statusMessage = '',
         public array $metadata = [],
     ) {
-        MetadataValidator::assertMetadata($this->metadata);
+        MetadataValidator::assertResponseMetadata($this->metadata);
     }
 }

@@ -29,6 +29,13 @@ final class UnaryResponseTest extends TestCase
         new UnaryResponse('payload', metadata: $metadata);
     }
 
+    public function testAllowsGrpcStatusDetailsMetadata(): void
+    {
+        $response = new UnaryResponse('payload', metadata: ['grpc-status-details-bin' => ['raw']]);
+
+        self::assertSame(['grpc-status-details-bin' => ['raw']], $response->metadata);
+    }
+
     private function invalidAssociativeMetadataJson(): string
     {
         return '{"metadata":{"key":"value"}}';

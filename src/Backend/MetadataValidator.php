@@ -12,7 +12,23 @@ final class MetadataValidator
     /**
      * @param array<mixed> $metadata
      */
-    public static function assertMetadata(array $metadata): void
+    public static function assertRequestMetadata(array $metadata): void
+    {
+        self::assertMetadata($metadata, allowReservedGrpcNames: false);
+    }
+
+    /**
+     * @param array<mixed> $metadata
+     */
+    public static function assertResponseMetadata(array $metadata): void
+    {
+        self::assertMetadata($metadata, allowReservedGrpcNames: true);
+    }
+
+    /**
+     * @param array<mixed> $metadata
+     */
+    private static function assertMetadata(array $metadata, bool $allowReservedGrpcNames): void
     {
         foreach ($metadata as $name => $values) {
             if (!is_string($name) || $name === '') {
@@ -23,7 +39,7 @@ final class MetadataValidator
                 throw new \InvalidArgumentException('metadata names must use lowercase gRPC metadata characters.');
             }
 
-            if (str_starts_with($name, 'grpc-')) {
+            if (!$allowReservedGrpcNames && str_starts_with($name, 'grpc-')) {
                 throw new \InvalidArgumentException('metadata names starting with grpc- are reserved.');
             }
 
