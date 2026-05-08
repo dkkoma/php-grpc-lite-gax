@@ -1,11 +1,11 @@
-# Review Finding: Enforce Metadata List Shape
+# Review Finding: Enforce Metadata List Shape In Tests
 
 State: closed
-Source: domain model reviewer
+Source: test reviewer
 
 ## Context
 
-Metadata was documented as `array<string, list<string>>`, but associative value arrays passed runtime validation.
+The test reviewer also identified that metadata was documented as `array<string, list<string>>`, but associative value arrays passed runtime validation.
 
 ## Impact
 
@@ -13,7 +13,7 @@ Backends could receive non-list metadata values and serialize them inconsistentl
 
 ## Proposed Fix
 
-Reject metadata values that are not PHP lists.
+Reject metadata values that are not PHP lists and add regression coverage.
 
 ## Fix Summary
 
