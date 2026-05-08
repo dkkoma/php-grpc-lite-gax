@@ -55,7 +55,7 @@ Response mapping extracts the response message bytes into `UnaryResponse::payloa
 
 `GrpcLiteBackend::close()` should release client/session resources, be idempotent, and make later calls fail with `BackendClosedException`.
 
-`GrpcLiteTransport::build()` is the user-facing construction path. Its runtime target is `dkkoma/php-grpc-lite`, which registers a `grpc` extension, defines `Grpc\VERSION`, and provides the low-level `Grpc\*` classes consumed by `GrpcLiteNativeBridge`. The package suggests `dkkoma/php-grpc-lite` until a stable non-dev Composer constraint is available. `composer test:native-smoke` is an environment gate: it fails when the real extension surface is unavailable instead of silently passing with stubs.
+`GrpcLiteTransport::build()` is the user-facing construction path. Its runtime target is `dkkoma/php-grpc-lite`, which registers a `grpc` extension, defines `Grpc\VERSION`, and provides the low-level `Grpc\*` classes consumed by `GrpcLiteNativeBridge`. The package suggests `dkkoma/php-grpc-lite` until a stable non-dev Composer constraint is available. The Dev Container builds the extension from the pinned package source commit but does not load it by default, so deterministic unit tests can keep using test stubs. `composer test:native-smoke` explicitly loads `grpc.so` and verifies the real native surface.
 
 ## Validation Boundary
 
