@@ -10,6 +10,7 @@ use Google\ApiCore\ValidationException;
 use Google\Protobuf\StringValue;
 use GrpcLiteGax\Backend\GrpcStatusCode;
 use GrpcLiteGax\Backend\UnaryResponse;
+use GrpcLiteGax\Tests\Fixtures\GaxUnaryCallFixture;
 use GrpcLiteGax\Tests\Support\FakeBackend;
 use GrpcLiteGax\Tests\Support\TestGrpcTransport;
 use GuzzleHttp\Promise\CancellationException;
@@ -27,23 +28,16 @@ final class AbstractGrpcTransportTest extends TestCase
 
         $transport = new TestGrpcTransport($backend);
         $responseMetadata = null;
+        $options = GaxUnaryCallFixture::options();
+        $options['headers']['Authorization'] = ['Bearer token'];
+        $options['headers']['authorization'] = ['Bearer fallback'];
+        $options['metadataCallback'] = static function (array $metadata) use (&$responseMetadata): void {
+            $responseMetadata = $metadata;
+        };
+
         $promise = $transport->startUnaryCall(
-            new Call(
-                method: 'google.example.v1.ExampleService/GetExample',
-                decodeType: StringValue::class,
-                message: new StringValue(['value' => 'request-value']),
-            ),
-            [
-                'headers' => [
-                    'Authorization' => ['Bearer token'],
-                    'authorization' => ['Bearer fallback'],
-                    'x-goog-request-params' => ['name=example'],
-                ],
-                'metadataCallback' => static function (array $metadata) use (&$responseMetadata): void {
-                    $responseMetadata = $metadata;
-                },
-                'timeoutMillis' => 1500,
-            ],
+            GaxUnaryCallFixture::call(),
+            $options,
         );
 
         $response = $promise->wait();
@@ -56,8 +50,9 @@ final class AbstractGrpcTransportTest extends TestCase
         self::assertSame('GetExample', $request->method);
         self::assertSame('request-value', $this->decodeStringPayload($request->payload));
         self::assertSame([
+            'x-goog-request-params' => ['name=projects/example/locations/global'],
+            'x-goog-api-client' => ['gapic/0.0.0 gax/' . \Google\ApiCore\Version::getApiCoreVersion()],
             'authorization' => ['Bearer token', 'Bearer fallback'],
-            'x-goog-request-params' => ['name=example'],
         ], $request->metadata);
         self::assertSame(1.5, $request->timeoutSeconds);
         self::assertSame(['response-header' => ['response-metadata']], $responseMetadata);
@@ -80,11 +75,7 @@ final class AbstractGrpcTransportTest extends TestCase
         $transport = new TestGrpcTransport($backend);
 
         $promise = $transport->startUnaryCall(
-            new Call(
-                method: 'google.example.v1.ExampleService/GetExample',
-                decodeType: StringValue::class,
-                message: new StringValue(['value' => 'request-value']),
-            ),
+            GaxUnaryCallFixture::call(),
             [],
         );
 
@@ -101,15 +92,10 @@ final class AbstractGrpcTransportTest extends TestCase
     public function testRejectsUnsupportedStreamingCalls(): void
     {
         $transport = new TestGrpcTransport(new FakeBackend());
-        $call = new Call(
-            method: 'google.example.v1.ExampleService/GetExample',
-            decodeType: StringValue::class,
-            message: new StringValue(['value' => 'request-value']),
-        );
 
         $this->expectException(\BadMethodCallException::class);
 
-        $transport->startServerStreamingCall($call, []);
+        $transport->startServerStreamingCall(GaxUnaryCallFixture::call(), []);
     }
 
     public function testRejectsMalformedMethodName(): void
@@ -154,11 +140,7 @@ final class AbstractGrpcTransportTest extends TestCase
         $this->expectExceptionMessage('The "headers" option must be an array.');
 
         $transport->startUnaryCall(
-            new Call(
-                method: 'google.example.v1.ExampleService/GetExample',
-                decodeType: StringValue::class,
-                message: new StringValue(['value' => 'request-value']),
-            ),
+            GaxUnaryCallFixture::call(),
             ['headers' => 'bad'],
         );
     }
@@ -171,11 +153,7 @@ final class AbstractGrpcTransportTest extends TestCase
         $this->expectExceptionMessage('The "timeoutMillis" option must be numeric.');
 
         $transport->startUnaryCall(
-            new Call(
-                method: 'google.example.v1.ExampleService/GetExample',
-                decodeType: StringValue::class,
-                message: new StringValue(['value' => 'request-value']),
-            ),
+            GaxUnaryCallFixture::call(),
             ['timeoutMillis' => 'bad'],
         );
     }
@@ -215,11 +193,7 @@ final class AbstractGrpcTransportTest extends TestCase
         $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
 
         $transport->startUnaryCall(
-            new Call(
-                method: 'google.example.v1.ExampleService/GetExample',
-                decodeType: StringValue::class,
-                message: new StringValue(['value' => 'request-value']),
-            ),
+            GaxUnaryCallFixture::call(),
             [],
         )->wait();
     }
