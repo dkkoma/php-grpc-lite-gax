@@ -24,6 +24,30 @@ final class UnaryRequestTest extends TestCase
         new UnaryRequest('service.v1.Service', 'Method', 'payload', timeoutSeconds: 0.0);
     }
 
+    public function testRejectsEmptyService(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('service must not be empty.');
+
+        new UnaryRequest('', 'Method', 'payload');
+    }
+
+    public function testRejectsInvalidService(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('service must be a canonical protobuf service name.');
+
+        new UnaryRequest('1bad.Service', 'Method', 'payload');
+    }
+
+    public function testRejectsEmptyMethod(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('method must not be empty.');
+
+        new UnaryRequest('service.v1.Service', '', 'payload');
+    }
+
     public function testRejectsNonFiniteTimeout(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -53,6 +77,40 @@ final class UnaryRequestTest extends TestCase
         new UnaryRequest('service.v1.Service', 'Method', 'payload', ['Invalid' => ['value']]);
     }
 
+    public function testRejectsEmptyMetadataName(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('metadata names must be non-empty strings.');
+
+        new UnaryRequest('service.v1.Service', 'Method', 'payload', ['' => ['value']]);
+    }
+
+    public function testRejectsNonArrayMetadataValues(): void
+    {
+        $metadata = json_decode($this->invalidNonArrayMetadataJson(), true);
+        self::assertIsArray($metadata);
+
+        /** @var array<string, list<string>> $metadata */
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('metadata values must be lists of strings.');
+
+        new UnaryRequest('service.v1.Service', 'Method', 'payload', $metadata);
+    }
+
+    public function testRejectsNonStringMetadataListValue(): void
+    {
+        $metadata = json_decode($this->invalidNonStringMetadataValueJson(), true);
+        self::assertIsArray($metadata);
+
+        /** @var array<string, list<string>> $metadata */
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('metadata values must be lists of strings.');
+
+        new UnaryRequest('service.v1.Service', 'Method', 'payload', $metadata);
+    }
+
     public function testRejectsReservedMetadataName(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -72,5 +130,15 @@ final class UnaryRequestTest extends TestCase
     private function invalidAssociativeMetadataJson(): string
     {
         return '{"metadata":{"key":"value"}}';
+    }
+
+    private function invalidNonArrayMetadataJson(): string
+    {
+        return '{"metadata":"value"}';
+    }
+
+    private function invalidNonStringMetadataValueJson(): string
+    {
+        return '{"metadata":[1]}';
     }
 }

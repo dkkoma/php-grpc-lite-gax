@@ -152,6 +152,23 @@ final class AbstractGrpcTransportTest extends TestCase
         );
     }
 
+    public function testRejectsMethodNameWithEmptyServicePart(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Unary call method must be formatted as "service/method".');
+
+        $transport->startUnaryCall(
+            new Call(
+                method: '/GetExample',
+                decodeType: StringValue::class,
+                message: new StringValue(['value' => 'request-value']),
+            ),
+            [],
+        );
+    }
+
     public function testRejectsInvalidServiceToken(): void
     {
         $transport = new TestGrpcTransport(new FakeBackend());
@@ -213,6 +230,33 @@ final class AbstractGrpcTransportTest extends TestCase
         $transport->startUnaryCall(
             GaxUnaryCallFixture::call(),
             ['headers' => 'bad'],
+        );
+    }
+
+    public function testNormalizesStringHeaderValue(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueResponse(new UnaryResponse($this->stringPayload('response-value')));
+        $transport = new TestGrpcTransport($backend);
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['headers' => ['x-custom-header' => 'value']],
+        )->wait();
+
+        self::assertSame(['x-custom-header' => ['value']], $backend->lastRequest()->metadata);
+    }
+
+    public function testRejectsInvalidHeaderKeyType(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Headers must be an array<string, string|list<string>>.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['headers' => [['value']]],
         );
     }
 
@@ -361,6 +405,16 @@ final class AbstractGrpcTransportTest extends TestCase
     public function testUnaryCallMapsBackendThrowableToUnavailableApiException(): void
     {
         $transport = new TestGrpcTransport(new ThrowingBackend(new \RuntimeException('network down')));
+
+        $this->expectException(ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        $transport->startUnaryCall(GaxUnaryCallFixture::call(), [])->wait();
+    }
+
+    public function testUnaryCallMapsBackendErrorToUnavailableApiException(): void
+    {
+        $transport = new TestGrpcTransport(new ThrowingBackend(new \Error('engine failure')));
 
         $this->expectException(ApiException::class);
         $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
