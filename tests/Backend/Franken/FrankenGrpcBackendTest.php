@@ -68,6 +68,7 @@ final class FrankenGrpcBackendTest extends TestCase
         $backend->close();
 
         self::assertTrue($bridge->isClosed());
+        self::assertSame(1, $bridge->closeCallCount());
 
         $this->expectException(BackendClosedException::class);
 

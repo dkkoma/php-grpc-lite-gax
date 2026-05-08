@@ -43,11 +43,11 @@ Response mapping converts grpc-go response bytes into `UnaryResponse::payload`, 
 
 The backend owns grpc-go channel/client lifecycle. `close()` must release backend resources, be safe to call more than once, and make later calls fail predictably. Per-call cancellation remains outside the current contract.
 
-The PHP implementation uses an internal bridge interface so grpc-go bindings remain replaceable. The bridge accepts backend-native scalar data: path, payload, metadata, and timeout duration. `FrankenGrpcBackend` owns validation of the bridge result and conversion into `UnaryResponse`.
+The PHP implementation uses an internal bridge interface so grpc-go bindings remain replaceable. The bridge accepts backend-native scalar data: path, payload, metadata, and timeout duration. `FrankenGrpcBridge` is responsible for normalizing grpc-go output into `FrankenGrpcResponse`; `FrankenGrpcBackend` maps that domain-shaped bridge response into `UnaryResponse`.
 
 ## GrpcLiteBackend
 
-`GrpcLiteBackend` is the `php-grpc-lite` / nghttp2 backend. It must share the same `UnaryBackend` contract as `FrankenGrpcBackend`: no GAX `Call` dependency, one unary request in, one unary response or backend exception out.
+`GrpcLiteBackend` is the planned `php-grpc-lite` / nghttp2 backend. It must share the same `UnaryBackend` contract as `FrankenGrpcBackend`: no GAX `Call` dependency, one unary request in, one unary response or backend exception out.
 
 Request mapping sends `UnaryRequest::path()` as the HTTP/2 `:path`, uses POST semantics, sends the serialized protobuf `payload` as the gRPC request message body, forwards lowercase metadata as gRPC metadata headers, and treats `timeoutSeconds` as a relative timeout duration for the nghttp2 request. The backend is responsible for any gRPC wire framing required by `php-grpc-lite`.
 
@@ -65,4 +65,4 @@ The current backend and abstract transport types are internal implementation con
 
 ## Current Scope
 
-The current implementation slice includes Composer package setup, PHPStan level max, PHPUnit, `AbstractGrpcTransport`, `UnaryBackend`, `FakeBackend`, and tests around the fake-backed transport path.
+The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, `AbstractGrpcTransport`, `UnaryBackend`, `FakeBackend`, `FrankenGrpcBackend`, the Franken bridge boundary, backend contract tests, and transport tests. `GrpcLiteBackend` is design-only and not shipped yet.

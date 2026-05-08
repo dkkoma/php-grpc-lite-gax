@@ -17,6 +17,8 @@ final class FakeFrankenGrpcBridge implements FrankenGrpcBridge
 
     private bool $closed = false;
 
+    private int $closeCallCount = 0;
+
     public function enqueueResponse(FrankenGrpcResponse $response): void
     {
         $this->responses[] = $response;
@@ -49,6 +51,7 @@ final class FakeFrankenGrpcBridge implements FrankenGrpcBridge
     #[\Override]
     public function close(): void
     {
+        $this->closeCallCount++;
         $this->closed = true;
     }
 
@@ -75,5 +78,10 @@ final class FakeFrankenGrpcBridge implements FrankenGrpcBridge
     public function isClosed(): bool
     {
         return $this->closed;
+    }
+
+    public function closeCallCount(): int
+    {
+        return $this->closeCallCount;
     }
 }

@@ -50,7 +50,7 @@ final class FrankenGrpcBackend implements UnaryBackend
             return;
         }
 
-        $this->closed = true;
         $this->bridge->close();
+        $this->closed = true;
     }
 }
