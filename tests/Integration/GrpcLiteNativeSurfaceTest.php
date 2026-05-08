@@ -13,12 +13,16 @@ final class GrpcLiteNativeSurfaceTest extends TestCase
 {
     public function testBuildsTransportAgainstRealGrpcLiteExtensionSurface(): void
     {
-        if (!extension_loaded('grpc')) {
-            self::markTestSkipped('The grpc extension is not loaded.');
+        if (property_exists(Channel::class, 'instances')) {
+            self::fail('The test stub Grpc\\Channel is loaded instead of the native extension class.');
         }
 
-        if (property_exists(Channel::class, 'instances')) {
-            self::markTestSkipped('The test stub Grpc\\Channel is loaded instead of the native extension class.');
+        if (!extension_loaded('grpc')) {
+            self::fail('The grpc extension is not loaded.');
+        }
+
+        if (!defined('Grpc\\VERSION')) {
+            self::fail('The php-grpc-lite runtime provider did not define Grpc\\VERSION.');
         }
 
         $transport = GrpcLiteTransport::build('localhost:50051', [

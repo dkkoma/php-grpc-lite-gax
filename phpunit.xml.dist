@@ -6,7 +6,11 @@
          cacheDirectory=".phpunit.cache">
     <testsuites>
         <testsuite name="unit">
-            <directory>tests</directory>
+            <directory>tests/Backend</directory>
+            <directory>tests/Transport</directory>
+        </testsuite>
+        <testsuite name="native-smoke">
+            <directory>tests/Integration</directory>
         </testsuite>
     </testsuites>
     <source>

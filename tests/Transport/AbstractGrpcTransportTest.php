@@ -285,6 +285,27 @@ final class AbstractGrpcTransportTest extends TestCase
 
         self::assertSame(['authorization' => ['Bearer user']], $backend->lastRequest()->metadata);
         self::assertNull($credentials->audience);
+        self::assertTrue($credentials->checkedUniverseDomain);
+    }
+
+    public function testDoesNotDuplicateMixedCaseAuthorizationHeader(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueResponse(new UnaryResponse($this->stringPayload('response-value')));
+        $transport = new TestGrpcTransport($backend);
+        $credentials = new TestHeaderCredentials(['authorization' => ['Bearer generated']]);
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            [
+                'headers' => ['AUTHORIZATION' => ['Bearer user']],
+                'credentialsWrapper' => $credentials,
+            ],
+        )->wait();
+
+        self::assertSame(['authorization' => ['Bearer user']], $backend->lastRequest()->metadata);
+        self::assertNull($credentials->audience);
+        self::assertTrue($credentials->checkedUniverseDomain);
     }
 
     public function testAllowsCredentialsWrapperWithoutAuthorizationCallback(): void

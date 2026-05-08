@@ -90,6 +90,13 @@ final class GrpcLiteNativeBridge implements GrpcLiteBridge
                 // @codeCoverageIgnoreEnd
             }
         }
+
+        $version = defined('Grpc\\VERSION') ? (string) constant('Grpc\\VERSION') : '';
+        if ($version === '') {
+            // @codeCoverageIgnoreStart
+            throw new \RuntimeException('php-grpc-lite runtime provider must define Grpc\\VERSION.');
+            // @codeCoverageIgnoreEnd
+        }
     }
 
     private function defaultCredentials(): ChannelCredentials

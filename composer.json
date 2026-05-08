@@ -35,9 +35,9 @@
       "phpstan analyse --memory-limit=1G",
       "phpcs"
     ],
-    "test": "phpunit",
-    "test:native-smoke": "phpunit --filter GrpcLiteNativeSurfaceTest",
-    "test:coverage": "XDEBUG_MODE=coverage phpunit --coverage-text",
+    "test": "phpunit --testsuite unit",
+    "test:native-smoke": "phpunit --testsuite native-smoke",
+    "test:coverage": "XDEBUG_MODE=coverage phpunit --testsuite unit --coverage-text",
     "validate-project": "composer validate --strict"
   }
 }

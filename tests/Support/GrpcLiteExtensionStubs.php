@@ -12,6 +12,7 @@ namespace Grpc {
         \define('Grpc\\OP_RECV_INITIAL_METADATA', 3);
         \define('Grpc\\OP_RECV_MESSAGE', 4);
         \define('Grpc\\OP_RECV_STATUS_ON_CLIENT', 5);
+        \define('Grpc\\VERSION', '0.1.0');
 
         final class ChannelCredentials
         {

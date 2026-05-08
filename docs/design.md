@@ -17,11 +17,11 @@ Google\ApiCore\Transport\TransportInterface
 
 `AbstractGrpcTransport` owns the GAX-facing contract. It converts a GAX `Call` and call options into a backend `UnaryRequest`, delegates execution to `UnaryBackend`, and converts the backend `UnaryResponse` back into the promise-based GAX transport result. It also normalizes GAX credential callbacks into request metadata before the backend boundary.
 
-`UnaryBackend` owns only unary request execution. Backend implementations must not depend on GAX client internals. Current and planned implementations are:
+`UnaryBackend` owns only unary request execution. Backend implementations must not depend on GAX client internals. Current implementations are:
 
 - Current: `FrankenGrpcBackend`, the FrankenPHP grpc-go bridge.
 - Current: `FakeBackend`, the repository test double under `tests/Support`.
-- Planned: `GrpcLiteBackend`, the `php-grpc-lite` / nghttp2 bridge.
+- Current: `GrpcLiteBackend`, the `php-grpc-lite` / nghttp2 bridge.
 
 ## Unary Model
 
@@ -55,7 +55,7 @@ Response mapping extracts the response message bytes into `UnaryResponse::payloa
 
 `GrpcLiteBackend::close()` should release client/session resources, be idempotent, and make later calls fail with `BackendClosedException`.
 
-`GrpcLiteTransport::build()` is the user-facing construction path. Its runtime target is `dkkoma/php-grpc-lite`, which registers a `grpc` extension and provides the low-level `Grpc\*` classes consumed by `GrpcLiteNativeBridge`. The package suggests `dkkoma/php-grpc-lite` until a stable non-dev Composer constraint is available.
+`GrpcLiteTransport::build()` is the user-facing construction path. Its runtime target is `dkkoma/php-grpc-lite`, which registers a `grpc` extension, defines `Grpc\VERSION`, and provides the low-level `Grpc\*` classes consumed by `GrpcLiteNativeBridge`. The package suggests `dkkoma/php-grpc-lite` until a stable non-dev Composer constraint is available. `composer test:native-smoke` is an environment gate: it fails when the real extension surface is unavailable instead of silently passing with stubs.
 
 ## Validation Boundary
 

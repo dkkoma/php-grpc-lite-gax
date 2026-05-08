@@ -125,11 +125,7 @@ abstract class AbstractGrpcTransport implements TransportInterface
             throw new ValidationException('The "headers" option must be an array.');
         }
 
-        if (
-            !isset($headers['Authorization'])
-            && !isset($headers['authorization'])
-            && isset($options['credentialsWrapper'])
-        ) {
+        if (isset($options['credentialsWrapper'])) {
             $credentialsWrapper = $options['credentialsWrapper'];
             if (!$credentialsWrapper instanceof HeaderCredentialsInterface) {
                 throw new ValidationException(
@@ -138,6 +134,9 @@ abstract class AbstractGrpcTransport implements TransportInterface
             }
 
             $credentialsWrapper->checkUniverseDomain();
+        }
+
+        if (isset($credentialsWrapper) && !$this->hasAuthorizationHeader($headers)) {
             $audience = $options['audience'] ?? null;
             if ($audience !== null && !is_string($audience)) {
                 throw new ValidationException('The "audience" option must be a string.');
@@ -153,6 +152,20 @@ abstract class AbstractGrpcTransport implements TransportInterface
         }
 
         return $headers;
+    }
+
+    /**
+     * @param array<mixed> $headers
+     */
+    private function hasAuthorizationHeader(array $headers): bool
+    {
+        foreach ($headers as $name => $_) {
+            if (is_string($name) && strtolower($name) === 'authorization') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
