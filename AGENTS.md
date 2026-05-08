@@ -27,7 +27,7 @@ Use PHPUnit or Pest consistently once chosen. Test files should mirror `src/` pa
 
 ## Design Docs & Issue Tracking
 
-Keep architecture notes, API sketches, and tradeoff records in `docs/design.md`. Update it to the latest current design only; avoid stale historical alternatives. Every user instruction, work unit, and reviewer finding must have its own Markdown issue file; do not collapse multiple findings into one issue. Create active items under `docs/issues/open/`; after implementation and verification, move the file to `docs/issues/closed/` and update its state. Each issue should include state, source, context, impact, proposed fix, fix summary, and verification.
+Keep architecture notes, API sketches, and tradeoff records in `docs/design.md`. Update it to the latest current design only; avoid stale historical alternatives. Every user instruction, work unit, and reviewer finding must have its own Markdown issue file; do not collapse multiple findings into one issue. Use `docs/issues/template.md` for new issues. Create active items under `docs/issues/open/`; after implementation and verification, move the file to `docs/issues/closed/` and update its state.
 
 ## Review Workflow
 
