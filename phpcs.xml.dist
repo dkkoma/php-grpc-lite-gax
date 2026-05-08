@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="php-grpc-lite-gax">
+    <description>PSR-12 coding standard for php-grpc-lite-gax.</description>
+    <rule ref="PSR12"/>
+    <file>src</file>
+    <file>tests</file>
+</ruleset>

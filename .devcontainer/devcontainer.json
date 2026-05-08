@@ -18,6 +18,9 @@
       }
     }
   },
-  "postCreateCommand": "composer install || true",
+  "remoteEnv": {
+    "XDEBUG_MODE": "off"
+  },
+  "postCreateCommand": "composer install",
   "remoteUser": "vscode"
 }
