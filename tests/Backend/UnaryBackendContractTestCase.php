@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GrpcLiteGax\Tests\Backend;
 
+use GrpcLiteGax\Backend\BackendClosedException;
 use GrpcLiteGax\Backend\GrpcStatusCode;
 use GrpcLiteGax\Backend\UnaryBackend;
 use GrpcLiteGax\Backend\UnaryRequest;
@@ -55,7 +56,7 @@ abstract class UnaryBackendContractTestCase extends TestCase
         $backend = $this->createBackendForLifecycle();
         $backend->close();
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(BackendClosedException::class);
 
         $backend->call(new UnaryRequest('service.v1.Service', 'Method', 'request-payload'));
     }
