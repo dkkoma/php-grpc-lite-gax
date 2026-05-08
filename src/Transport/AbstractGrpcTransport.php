@@ -8,6 +8,7 @@ use Google\ApiCore\ApiException;
 use Google\ApiCore\BidiStream;
 use Google\ApiCore\Call;
 use Google\ApiCore\ClientStream;
+use Google\ApiCore\HeaderCredentialsInterface;
 use Google\ApiCore\ServerStream;
 use Google\ApiCore\Transport\TransportInterface;
 use Google\ApiCore\ValidationException;
@@ -107,9 +108,51 @@ abstract class AbstractGrpcTransport implements TransportInterface
             service: $service,
             method: $method,
             payload: $message->serializeToString(),
-            metadata: $this->normalizeMetadata($options['headers'] ?? []),
+            metadata: $this->normalizeMetadata($this->headersWithCredentials($options)),
             timeoutSeconds: $this->timeoutSeconds($options['timeoutMillis'] ?? null),
         );
+    }
+
+    /**
+     * @param array<mixed> $options
+     * @return array<mixed>
+     */
+    private function headersWithCredentials(array $options): array
+    {
+        $headers = $options['headers'] ?? [];
+
+        if (!is_array($headers)) {
+            throw new ValidationException('The "headers" option must be an array.');
+        }
+
+        if (
+            !isset($headers['Authorization'])
+            && !isset($headers['authorization'])
+            && isset($options['credentialsWrapper'])
+        ) {
+            $credentialsWrapper = $options['credentialsWrapper'];
+            if (!$credentialsWrapper instanceof HeaderCredentialsInterface) {
+                throw new ValidationException(
+                    'The "credentialsWrapper" option must implement HeaderCredentialsInterface.',
+                );
+            }
+
+            $credentialsWrapper->checkUniverseDomain();
+            $audience = $options['audience'] ?? null;
+            if ($audience !== null && !is_string($audience)) {
+                throw new ValidationException('The "audience" option must be a string.');
+            }
+
+            $callback = $credentialsWrapper->getAuthorizationHeaderCallback($audience);
+            $authHeaders = $callback === null ? [] : $callback();
+            if (!is_array($authHeaders)) {
+                throw new \UnexpectedValueException('Expected array response from authorization header callback.');
+            }
+
+            $headers += $authHeaders;
+        }
+
+        return $headers;
     }
 
     /**
@@ -139,15 +182,11 @@ abstract class AbstractGrpcTransport implements TransportInterface
     }
 
     /**
-     * @param mixed $headers
+     * @param array<mixed> $headers
      * @return array<string, list<string>>
      */
-    private function normalizeMetadata(mixed $headers): array
+    private function normalizeMetadata(array $headers): array
     {
-        if (!is_array($headers)) {
-            throw new ValidationException('The "headers" option must be an array.');
-        }
-
         $metadata = [];
         foreach ($headers as $name => $values) {
             if (is_string($values)) {
@@ -237,7 +276,7 @@ abstract class AbstractGrpcTransport implements TransportInterface
             throw ApiException::createFromApiResponse(
                 $response->statusMessage,
                 $response->grpcStatusCode->value,
-                $response->metadata,
+                $response->trailingMetadata !== [] ? $response->trailingMetadata : $response->metadata,
             );
         }
 

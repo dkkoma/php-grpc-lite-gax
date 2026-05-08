@@ -12,6 +12,7 @@ use GrpcLiteGax\Backend\GrpcStatusCode;
 use GrpcLiteGax\Backend\UnaryResponse;
 use GrpcLiteGax\Tests\Fixtures\GaxUnaryCallFixture;
 use GrpcLiteGax\Tests\Support\FakeBackend;
+use GrpcLiteGax\Tests\Support\TestHeaderCredentials;
 use GrpcLiteGax\Tests\Support\TestGrpcTransport;
 use GrpcLiteGax\Tests\Support\ThrowingBackend;
 use GuzzleHttp\Promise\CancellationException;
@@ -247,6 +248,103 @@ final class AbstractGrpcTransportTest extends TestCase
         self::assertSame(['x-custom-header' => ['value']], $backend->lastRequest()->metadata);
     }
 
+    public function testAddsAuthorizationHeadersFromCredentialsWrapper(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueResponse(new UnaryResponse($this->stringPayload('response-value')));
+        $transport = new TestGrpcTransport($backend);
+        $credentials = new TestHeaderCredentials(['authorization' => ['Bearer generated']]);
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            [
+                'credentialsWrapper' => $credentials,
+                'audience' => 'https://service.googleapis.com/',
+            ],
+        )->wait();
+
+        self::assertSame(['authorization' => ['Bearer generated']], $backend->lastRequest()->metadata);
+        self::assertSame('https://service.googleapis.com/', $credentials->audience);
+        self::assertTrue($credentials->checkedUniverseDomain);
+    }
+
+    public function testDoesNotOverrideExistingAuthorizationHeader(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueResponse(new UnaryResponse($this->stringPayload('response-value')));
+        $transport = new TestGrpcTransport($backend);
+        $credentials = new TestHeaderCredentials(['authorization' => ['Bearer generated']]);
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            [
+                'headers' => ['authorization' => ['Bearer user']],
+                'credentialsWrapper' => $credentials,
+            ],
+        )->wait();
+
+        self::assertSame(['authorization' => ['Bearer user']], $backend->lastRequest()->metadata);
+        self::assertNull($credentials->audience);
+    }
+
+    public function testAllowsCredentialsWrapperWithoutAuthorizationCallback(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueResponse(new UnaryResponse($this->stringPayload('response-value')));
+        $transport = new TestGrpcTransport($backend);
+        $credentials = new TestHeaderCredentials(null);
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['credentialsWrapper' => $credentials],
+        )->wait();
+
+        self::assertSame([], $backend->lastRequest()->metadata);
+        self::assertTrue($credentials->checkedUniverseDomain);
+    }
+
+    public function testRejectsInvalidCredentialsWrapper(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('The "credentialsWrapper" option must implement HeaderCredentialsInterface.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['credentialsWrapper' => new \stdClass()],
+        );
+    }
+
+    public function testRejectsInvalidAudience(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('The "audience" option must be a string.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            [
+                'credentialsWrapper' => new TestHeaderCredentials([]),
+                'audience' => 1,
+            ],
+        );
+    }
+
+    public function testRejectsInvalidAuthorizationCallbackResult(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage('Expected array response from authorization header callback.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['credentialsWrapper' => new TestHeaderCredentials('bad')],
+        );
+    }
+
     public function testRejectsInvalidHeaderKeyType(): void
     {
         $transport = new TestGrpcTransport(new FakeBackend());
@@ -388,18 +486,22 @@ final class AbstractGrpcTransportTest extends TestCase
             payload: '',
             grpcStatusCode: GrpcStatusCode::UNAVAILABLE,
             statusMessage: 'backend unavailable',
-            metadata: ['retry-info-bin' => ['raw']],
+            metadata: ['initial-header' => ['value']],
+            trailingMetadata: ['retry-info-bin' => ['raw']],
         ));
 
         $transport = new TestGrpcTransport($backend);
 
-        $this->expectException(ApiException::class);
-        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
-
-        $transport->startUnaryCall(
-            GaxUnaryCallFixture::call(),
-            [],
-        )->wait();
+        try {
+            $transport->startUnaryCall(
+                GaxUnaryCallFixture::call(),
+                [],
+            )->wait();
+            self::fail('Expected ApiException.');
+        } catch (ApiException $exception) {
+            self::assertSame(GrpcStatusCode::UNAVAILABLE->value, $exception->getCode());
+            self::assertSame(['retry-info-bin' => ['raw']], $exception->getMetadata());
+        }
     }
 
     public function testUnaryCallMapsBackendThrowableToUnavailableApiException(): void

@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
-namespace GrpcLiteGax\Backend;
+namespace GrpcLiteGax\Backend\GrpcLite;
+
+use GrpcLiteGax\Backend\GrpcStatusCode;
+use GrpcLiteGax\Backend\MetadataValidator;
 
 /**
  * @internal
  */
-final readonly class UnaryResponse
+final readonly class GrpcLiteResponse
 {
     /**
      * @param array<string, list<string>> $metadata
@@ -15,17 +18,12 @@ final readonly class UnaryResponse
      */
     public function __construct(
         public string $payload,
-        public GrpcStatusCode $grpcStatusCode = GrpcStatusCode::OK,
+        public GrpcStatusCode $statusCode = GrpcStatusCode::OK,
         public string $statusMessage = '',
         public array $metadata = [],
         public array $trailingMetadata = [],
     ) {
         MetadataValidator::assertResponseMetadata($this->metadata);
         MetadataValidator::assertResponseMetadata($this->trailingMetadata);
-    }
-
-    public function isOk(): bool
-    {
-        return $this->grpcStatusCode === GrpcStatusCode::OK;
     }
 }
