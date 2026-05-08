@@ -255,6 +255,19 @@ final class AbstractGrpcTransportTest extends TestCase
         );
     }
 
+    public function testRejectsReservedHeaderNames(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Header names starting with grpc- are reserved.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['headers' => ['grpc-timeout' => ['1S']]],
+        );
+    }
+
     public function testRejectsInvalidTimeoutMillis(): void
     {
         $transport = new TestGrpcTransport(new FakeBackend());

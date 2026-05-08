@@ -162,6 +162,10 @@ abstract class AbstractGrpcTransport implements TransportInterface
                 throw new ValidationException('Header names must use gRPC metadata characters.');
             }
 
+            if (str_starts_with(strtolower($name), 'grpc-')) {
+                throw new ValidationException('Header names starting with grpc- are reserved.');
+            }
+
             $normalizedName = strtolower($name);
             $metadata[$normalizedName] = array_merge(
                 $metadata[$normalizedName] ?? [],

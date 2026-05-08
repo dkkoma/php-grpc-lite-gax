@@ -53,6 +53,14 @@ final class UnaryRequestTest extends TestCase
         new UnaryRequest('service.v1.Service', 'Method', 'payload', ['Invalid' => ['value']]);
     }
 
+    public function testRejectsReservedMetadataName(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('metadata names starting with grpc- are reserved.');
+
+        new UnaryRequest('service.v1.Service', 'Method', 'payload', ['grpc-timeout' => ['1S']]);
+    }
+
     public function testRejectsInvalidMethodName(): void
     {
         $this->expectException(\InvalidArgumentException::class);

@@ -23,6 +23,10 @@ final class MetadataValidator
                 throw new \InvalidArgumentException('metadata names must use lowercase gRPC metadata characters.');
             }
 
+            if (str_starts_with($name, 'grpc-')) {
+                throw new \InvalidArgumentException('metadata names starting with grpc- are reserved.');
+            }
+
             if (!is_array($values)) {
                 throw new \InvalidArgumentException('metadata values must be lists of strings.');
             }
