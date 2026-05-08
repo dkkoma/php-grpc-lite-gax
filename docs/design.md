@@ -17,11 +17,11 @@ Google\ApiCore\Transport\TransportInterface
 
 `AbstractGrpcTransport` owns the GAX-facing contract. It converts a GAX `Call` and call options into a backend `UnaryRequest`, delegates execution to `UnaryBackend`, and converts the backend `UnaryResponse` back into the promise-based GAX transport result.
 
-`UnaryBackend` owns only unary request execution. Backend implementations must not depend on GAX client internals. Planned implementations are:
+`UnaryBackend` owns only unary request execution. Backend implementations must not depend on GAX client internals. Current and planned implementations are:
 
-- `FrankenGrpcBackend`: FrankenPHP grpc-go bridge.
-- `GrpcLiteBackend`: `php-grpc-lite` / nghttp2 bridge.
-- `FakeBackend`: repository test double under `tests/Support`.
+- Current: `FrankenGrpcBackend`, the FrankenPHP grpc-go bridge.
+- Current: `FakeBackend`, the repository test double under `tests/Support`.
+- Planned: `GrpcLiteBackend`, the `php-grpc-lite` / nghttp2 bridge.
 
 ## Unary Model
 
