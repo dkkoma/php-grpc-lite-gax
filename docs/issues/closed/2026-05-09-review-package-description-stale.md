@@ -1,6 +1,6 @@
 # Package description omits GrpcLite backend
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ Update the Composer description to mention both FrankenPHP grpc-go and `php-grpc
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+Updated `composer.json` description to mention both FrankenPHP grpc-go and `php-grpc-lite` backends.
 
 ## Verification
 
-Review finding only. Re-run `composer validate-project` after updating package metadata.
+Fixed in `20763ad`. Verified with `composer validate-project`.

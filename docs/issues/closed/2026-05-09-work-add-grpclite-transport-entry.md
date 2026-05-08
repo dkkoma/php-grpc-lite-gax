@@ -1,6 +1,6 @@
 # Add GrpcLiteTransport Entry Point
 
-State: open
+State: closed
 Source: work unit
 
 ## Context
@@ -17,8 +17,8 @@ Add `GrpcLiteTransport` as a small concrete `TransportInterface` implementation 
 
 ## Fix Summary
 
-Fill this in when closing the issue.
+Added `GrpcLiteTransport::build()` as the user-facing `TransportInterface` construction path for google-cloud-php clients.
 
 ## Verification
 
-List verification commands, review steps, or acceptance notes. Use `not run` with a reason when verification is skipped.
+Fixed in `20763ad`. Verified with `composer lint` and `composer test:coverage`.

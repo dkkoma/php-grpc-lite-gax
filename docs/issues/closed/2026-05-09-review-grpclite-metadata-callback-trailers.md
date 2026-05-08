@@ -1,6 +1,6 @@
 # GrpcLite metadata callback receives merged trailers
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ Split backend response metadata into initial metadata and trailing/status metada
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+Split backend response metadata into initial `metadata` and `trailingMetadata`. Success callbacks receive initial metadata only; non-OK `ApiException` construction uses trailing metadata when available.
 
 ## Verification
 
-not run; reviewer finding only.
+Fixed in `20763ad`. Verified with `composer lint` and `composer test:coverage`.

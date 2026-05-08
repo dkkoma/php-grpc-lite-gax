@@ -1,6 +1,6 @@
 # Raise PHPStan Memory Limit
 
-State: open
+State: closed
 Source: work unit
 
 ## Context
@@ -17,8 +17,8 @@ Update the Composer lint script to run PHPStan with an explicit memory limit.
 
 ## Fix Summary
 
-Fill this in when closing the issue.
+Updated the Composer `lint` script to run PHPStan with `--memory-limit=1G`.
 
 ## Verification
 
-List verification commands, review steps, or acceptance notes. Use `not run` with a reason when verification is skipped.
+Fixed in `20763ad`. Verified with `composer lint`.

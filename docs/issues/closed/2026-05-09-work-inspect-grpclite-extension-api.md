@@ -1,6 +1,6 @@
 # Inspect php-grpc-lite Extension API
 
-State: open
+State: closed
 Source: work unit
 
 ## Context
@@ -17,8 +17,8 @@ Use the Packagist package metadata and source tree to document the direct API as
 
 ## Fix Summary
 
-Fill this in when closing the issue.
+Inspected `dkkoma/php-grpc-lite` package metadata and source. Updated `docs/design.md` to record the direct low-level extension surface used by this repository.
 
 ## Verification
 
-List verification commands, review steps, or acceptance notes. Use `not run` with a reason when verification is skipped.
+Fixed in `20763ad`. Verified with `composer validate-project`, `composer lint`, and `composer test:coverage`.

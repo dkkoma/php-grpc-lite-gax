@@ -1,6 +1,6 @@
 # GrpcLiteTransport Public Constructor Leaks Internal Backend Contract
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ Keep `GrpcLiteTransport::build()` as the public construction path and hide backe
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+Made `GrpcLiteTransport` constructor private so the stable construction path is `GrpcLiteTransport::build()` instead of exposing `UnaryBackend` injection to users.
 
 ## Verification
 
-not run; reviewer finding only.
+Fixed in `20763ad`. Verified with `composer lint` and `composer test:coverage`.

@@ -1,6 +1,6 @@
 # GrpcLite runtime dependency is not declared
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ Declare the intended `php-grpc-lite` runtime dependency or an explicit Composer 
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+Added a Composer suggestion for `dkkoma/php-grpc-lite`, documented that `GrpcLiteTransport::build()` targets the `php-grpc-lite` low-level extension surface, and added `composer test:native-smoke` for environments with the real `grpc` extension loaded.
 
 ## Verification
 
-Review finding only. `composer lint` and `composer test:coverage` pass with the current dependency set.
+Fixed in `20763ad`. Verified with `composer validate-project`, `composer lint`, and `composer test:coverage`; native smoke is skipped in the current container because the `grpc` extension is not loaded.

@@ -1,6 +1,6 @@
 # Implemented Work Issues Remain Open
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ After the implementation is verified, update each completed work issue with fix 
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+Updated completed work-unit and reviewer issues with fix summaries and verification. The issue files are being moved to `docs/issues/closed/`.
 
 ## Verification
 
-not run; reviewer finding only.
+Verified by moving completed issue files to `docs/issues/closed/`.

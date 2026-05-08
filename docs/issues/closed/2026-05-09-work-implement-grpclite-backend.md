@@ -1,6 +1,6 @@
 # Implement GrpcLiteBackend
 
-State: open
+State: closed
 Source: work unit
 
 ## Context
@@ -17,8 +17,8 @@ Add `GrpcLiteBackend`, `GrpcLiteBridge`, `GrpcLiteResponse`, and `GrpcLiteNative
 
 ## Fix Summary
 
-Fill this in when closing the issue.
+Added `GrpcLiteBackend`, `GrpcLiteBridge`, `GrpcLiteResponse`, and `GrpcLiteNativeBridge` with contract tests, native bridge mapping tests, and metadata/status/deadline behavior coverage.
 
 ## Verification
 
-List verification commands, review steps, or acceptance notes. Use `not run` with a reason when verification is skipped.
+Fixed in `20763ad`. Verified with `composer lint` and `composer test:coverage`.

@@ -1,6 +1,6 @@
 # GrpcLite native bridge coverage uses only hand-written stubs
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ Keep the unit stub for deterministic branch coverage, but add a separate smoke o
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+Kept deterministic stubs for unit coverage and added `GrpcLiteNativeSurfaceTest` plus `composer test:native-smoke` to exercise the real native extension surface when `grpc` is loaded.
 
 ## Verification
 
-Review finding only. `composer lint` and `composer test:coverage` pass, but they use the stubbed native surface.
+Fixed in `20763ad`. Verified with `composer lint` and `composer test:coverage`; the native smoke test is present but skipped in the current container because the `grpc` extension is not loaded.

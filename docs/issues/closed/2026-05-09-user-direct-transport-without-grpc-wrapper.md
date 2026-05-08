@@ -1,6 +1,6 @@
 # Use TransportInterface Without grpc/grpc Runtime Wrapper
 
-State: open
+State: closed
 Source: user instruction
 
 ## Context
@@ -17,8 +17,8 @@ Implement the `GrpcLiteBackend` integration against the low-level `php-grpc-lite
 
 ## Fix Summary
 
-Fill this in when closing the issue.
+Implemented `GrpcLiteTransport::build()` and `GrpcLiteNativeBridge` against the low-level `Grpc\Channel`, `Grpc\Call`, and `Grpc\Timeval` surface. The runtime path does not use `grpc/grpc` `BaseStub` or `UnaryCall`.
 
 ## Verification
 
-List verification commands, review steps, or acceptance notes. Use `not run` with a reason when verification is skipped.
+Fixed in `20763ad`. Verified with `composer validate-project`, `composer lint`, and `composer test:coverage`.

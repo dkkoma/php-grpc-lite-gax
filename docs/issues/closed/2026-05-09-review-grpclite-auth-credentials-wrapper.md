@@ -1,6 +1,6 @@
 # GrpcLite transport ignores GAX credentials wrapper
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ Decide the low-level `php-grpc-lite` auth mapping and implement it without routi
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+`AbstractGrpcTransport` now accepts `HeaderCredentialsInterface`, checks universe domain, resolves authorization headers, preserves user-provided authorization headers, validates audience type, and includes tests for bearer/API-key style metadata and no-auth callbacks.
 
 ## Verification
 
-not run; reviewer finding only.
+Fixed in `20763ad`. Verified with `composer lint` and `composer test:coverage`.

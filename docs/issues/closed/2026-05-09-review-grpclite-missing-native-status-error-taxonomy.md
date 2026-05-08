@@ -1,6 +1,6 @@
 # GrpcLiteNativeBridge Treats Missing Native Status As Service UNKNOWN
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ Make `GrpcLiteNativeBridge` throw a backend/bridge exception when the receive ev
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+Changed `GrpcLiteNativeBridge` so missing or malformed native status codes throw a bridge failure. Unknown integer status values still map to `GrpcStatusCode::UNKNOWN`.
 
 ## Verification
 
-not run; reviewer finding only.
+Fixed in `20763ad`. Verified with `composer lint` and `composer test:coverage`.

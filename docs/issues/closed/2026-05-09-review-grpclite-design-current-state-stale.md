@@ -1,6 +1,6 @@
 # Design Doc Still Marks GrpcLiteBackend As Planned
 
-State: open
+State: closed
 Source: reviewer finding
 
 ## Context
@@ -17,8 +17,8 @@ Update `docs/design.md` so `GrpcLiteBackend` and `GrpcLiteTransport` are consist
 
 ## Fix Summary
 
-Fill this in when closing the issue. Summarize what changed and where.
+Updated `docs/design.md` so `GrpcLiteBackend`, `GrpcLiteNativeBridge`, and `GrpcLiteTransport` are described as current implementation, with current metadata, auth, runtime, and public boundary behavior.
 
 ## Verification
 
-not run; reviewer finding only.
+Fixed in `20763ad`. Verified by reviewing `docs/design.md` and running `composer lint`.
