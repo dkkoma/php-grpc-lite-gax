@@ -19,9 +19,17 @@ final class UnaryRequestTest extends TestCase
     public function testRejectsInvalidTimeout(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('timeoutSeconds must be positive when provided.');
+        $this->expectExceptionMessage('timeoutSeconds must be finite and positive when provided.');
 
         new UnaryRequest('service.v1.Service', 'Method', 'payload', timeoutSeconds: 0.0);
+    }
+
+    public function testRejectsNonFiniteTimeout(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('timeoutSeconds must be finite and positive when provided.');
+
+        new UnaryRequest('service.v1.Service', 'Method', 'payload', timeoutSeconds: INF);
     }
 
     public function testRejectsAssociativeMetadataValues(): void

@@ -117,10 +117,22 @@ abstract class AbstractGrpcTransport implements TransportInterface
      */
     private function splitMethod(string $method): array
     {
+        if (substr_count($method, '/') !== 1) {
+            throw new ValidationException('Unary call method must be formatted as "service/method".');
+        }
+
         $parts = explode('/', $method, 2);
 
         if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
             throw new ValidationException('Unary call method must be formatted as "service/method".');
+        }
+
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $parts[0])) {
+            throw new ValidationException('Unary call service must be a canonical protobuf service name.');
+        }
+
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $parts[1])) {
+            throw new ValidationException('Unary call method must be a protobuf method name.');
         }
 
         return [$parts[0], $parts[1]];
@@ -192,8 +204,8 @@ abstract class AbstractGrpcTransport implements TransportInterface
             throw new ValidationException('The "timeoutMillis" option must be numeric.');
         }
 
-        if ($timeoutMillis <= 0) {
-            throw new ValidationException('The "timeoutMillis" option must be positive.');
+        if (!is_finite((float) $timeoutMillis) || $timeoutMillis <= 0) {
+            throw new ValidationException('The "timeoutMillis" option must be finite and positive.');
         }
 
         return $timeoutMillis / 1000;

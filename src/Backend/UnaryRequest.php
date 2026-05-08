@@ -37,8 +37,11 @@ final readonly class UnaryRequest
 
         MetadataValidator::assertMetadata($this->metadata);
 
-        if ($this->timeoutSeconds !== null && $this->timeoutSeconds <= 0.0) {
-            throw new \InvalidArgumentException('timeoutSeconds must be positive when provided.');
+        if (
+            $this->timeoutSeconds !== null
+            && (!is_finite($this->timeoutSeconds) || $this->timeoutSeconds <= 0.0)
+        ) {
+            throw new \InvalidArgumentException('timeoutSeconds must be finite and positive when provided.');
         }
     }
 

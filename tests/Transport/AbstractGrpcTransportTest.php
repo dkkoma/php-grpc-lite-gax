@@ -15,6 +15,7 @@ use GrpcLiteGax\Tests\Support\FakeBackend;
 use GrpcLiteGax\Tests\Support\TestGrpcTransport;
 use GrpcLiteGax\Tests\Support\ThrowingBackend;
 use GuzzleHttp\Promise\CancellationException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class AbstractGrpcTransportTest extends TestCase
@@ -134,6 +135,57 @@ final class AbstractGrpcTransportTest extends TestCase
         );
     }
 
+    public function testRejectsMethodNameWithExtraSlash(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Unary call method must be formatted as "service/method".');
+
+        $transport->startUnaryCall(
+            new Call(
+                method: 'google.example.v1.ExampleService/Bad/Method',
+                decodeType: StringValue::class,
+                message: new StringValue(['value' => 'request-value']),
+            ),
+            [],
+        );
+    }
+
+    public function testRejectsInvalidServiceToken(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Unary call service must be a canonical protobuf service name.');
+
+        $transport->startUnaryCall(
+            new Call(
+                method: '1bad.Service/Method',
+                decodeType: StringValue::class,
+                message: new StringValue(['value' => 'request-value']),
+            ),
+            [],
+        );
+    }
+
+    public function testRejectsInvalidMethodToken(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Unary call method must be a protobuf method name.');
+
+        $transport->startUnaryCall(
+            new Call(
+                method: 'google.example.v1.ExampleService/1BadMethod',
+                decodeType: StringValue::class,
+                message: new StringValue(['value' => 'request-value']),
+            ),
+            [],
+        );
+    }
+
     public function testRejectsNonProtobufRequestMessage(): void
     {
         $transport = new TestGrpcTransport(new FakeBackend());
@@ -221,11 +273,35 @@ final class AbstractGrpcTransportTest extends TestCase
         $transport = new TestGrpcTransport(new FakeBackend());
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('The "timeoutMillis" option must be positive.');
+        $this->expectExceptionMessage('The "timeoutMillis" option must be finite and positive.');
 
         $transport->startUnaryCall(
             GaxUnaryCallFixture::call(),
             ['timeoutMillis' => 0],
+        );
+    }
+
+    /**
+     * @return iterable<string, array{float}>
+     */
+    public static function nonFiniteTimeoutMillisProvider(): iterable
+    {
+        yield 'infinity' => [INF];
+        yield 'negative infinity' => [-INF];
+        yield 'not a number' => [NAN];
+    }
+
+    #[DataProvider('nonFiniteTimeoutMillisProvider')]
+    public function testRejectsNonFiniteTimeoutMillis(float $timeoutMillis): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('The "timeoutMillis" option must be finite and positive.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['timeoutMillis' => $timeoutMillis],
         );
     }
 
