@@ -21,9 +21,7 @@ final class GaxUnaryCallFixture
     /**
      * @return array{
      *     headers: array<string, list<string>>,
-     *     timeoutMillis: int,
-     *     retryAttempt: int,
-     *     serviceName: string
+     *     timeoutMillis: int
      * }
      */
     public static function options(): array
@@ -34,8 +32,6 @@ final class GaxUnaryCallFixture
                 'x-goog-api-client' => ['gapic/0.0.0 gax/' . self::gaxVersion()],
             ],
             'timeoutMillis' => 1500,
-            'retryAttempt' => 0,
-            'serviceName' => 'google.example.v1.ExampleService',
         ];
     }
 

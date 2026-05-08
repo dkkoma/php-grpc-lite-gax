@@ -15,4 +15,22 @@ final class UnaryResponseTest extends TestCase
         self::assertTrue(new UnaryResponse('payload')->isOk());
         self::assertFalse(new UnaryResponse('', GrpcStatusCode::UNAVAILABLE, 'unavailable')->isOk());
     }
+
+    public function testRejectsInvalidMetadata(): void
+    {
+        $metadata = json_decode($this->invalidAssociativeMetadataJson(), true);
+        self::assertIsArray($metadata);
+
+        /** @var array<string, list<string>> $metadata */
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('metadata values must be lists of strings.');
+
+        new UnaryResponse('payload', metadata: $metadata);
+    }
+
+    private function invalidAssociativeMetadataJson(): string
+    {
+        return '{"metadata":{"key":"value"}}';
+    }
 }

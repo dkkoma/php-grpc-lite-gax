@@ -13,6 +13,7 @@ use GrpcLiteGax\Backend\UnaryResponse;
 use GrpcLiteGax\Tests\Fixtures\GaxUnaryCallFixture;
 use GrpcLiteGax\Tests\Support\FakeBackend;
 use GrpcLiteGax\Tests\Support\TestGrpcTransport;
+use GrpcLiteGax\Tests\Support\ThrowingBackend;
 use GuzzleHttp\Promise\CancellationException;
 use PHPUnit\Framework\TestCase;
 
@@ -98,6 +99,24 @@ final class AbstractGrpcTransportTest extends TestCase
         $transport->startServerStreamingCall(GaxUnaryCallFixture::call(), []);
     }
 
+    public function testRejectsUnsupportedClientStreamingCalls(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(\BadMethodCallException::class);
+
+        $transport->startClientStreamingCall(GaxUnaryCallFixture::call(), []);
+    }
+
+    public function testRejectsUnsupportedBidiStreamingCalls(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(\BadMethodCallException::class);
+
+        $transport->startBidiStreamingCall(GaxUnaryCallFixture::call(), []);
+    }
+
     public function testRejectsMalformedMethodName(): void
     {
         $transport = new TestGrpcTransport(new FakeBackend());
@@ -145,6 +164,45 @@ final class AbstractGrpcTransportTest extends TestCase
         );
     }
 
+    public function testRejectsInvalidHeaderValues(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Headers must be an array<string, string|list<string>>.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['headers' => ['metadata' => [1]]],
+        );
+    }
+
+    public function testRejectsAssociativeHeaderValueArrays(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Header values must be lists of strings.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['headers' => ['metadata' => ['key' => 'value']]],
+        );
+    }
+
+    public function testRejectsInvalidHeaderNames(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Header names must use gRPC metadata characters.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['headers' => ['bad/header' => ['value']]],
+        );
+    }
+
     public function testRejectsInvalidTimeoutMillis(): void
     {
         $transport = new TestGrpcTransport(new FakeBackend());
@@ -155,6 +213,19 @@ final class AbstractGrpcTransportTest extends TestCase
         $transport->startUnaryCall(
             GaxUnaryCallFixture::call(),
             ['timeoutMillis' => 'bad'],
+        );
+    }
+
+    public function testRejectsNonPositiveTimeoutMillis(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('The "timeoutMillis" option must be positive.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['timeoutMillis' => 0],
         );
     }
 
@@ -195,6 +266,31 @@ final class AbstractGrpcTransportTest extends TestCase
         $transport->startUnaryCall(
             GaxUnaryCallFixture::call(),
             [],
+        )->wait();
+    }
+
+    public function testUnaryCallMapsBackendThrowableToUnavailableApiException(): void
+    {
+        $transport = new TestGrpcTransport(new ThrowingBackend(new \RuntimeException('network down')));
+
+        $this->expectException(ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        $transport->startUnaryCall(GaxUnaryCallFixture::call(), [])->wait();
+    }
+
+    public function testRejectsInvalidMetadataCallback(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueResponse(new UnaryResponse($this->stringPayload('response-value')));
+        $transport = new TestGrpcTransport($backend);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('The "metadataCallback" option must be callable.');
+
+        $transport->startUnaryCall(
+            GaxUnaryCallFixture::call(),
+            ['metadataCallback' => 'not-a-callable'],
         )->wait();
     }
 
