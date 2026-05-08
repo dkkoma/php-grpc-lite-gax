@@ -12,6 +12,7 @@ Use Composer scripts as stable entry points:
 
 - `composer install`: install dependencies.
 - `composer test`: run tests.
+- `composer test:coverage`: run tests with text coverage output.
 - `composer lint`: run static analysis and style checks.
 - `composer cs-fix`: apply automatic style fixes.
 - `composer validate-project`: verify package metadata with strict validation.

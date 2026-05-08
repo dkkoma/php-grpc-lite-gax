@@ -1,6 +1,6 @@
 {
   "name": "dkkoma/php-grpc-lite-gax",
-  "description": "GAX TransportInterface adapters for FrankenPHP grpc-go and php-grpc-lite.",
+  "description": "GAX TransportInterface adapter foundation with a FrankenPHP grpc-go backend.",
   "type": "library",
   "license": "MIT",
   "require": {
@@ -30,6 +30,7 @@
       "phpcs"
     ],
     "test": "phpunit",
+    "test:coverage": "XDEBUG_MODE=coverage phpunit --coverage-text",
     "validate-project": "composer validate --strict"
   }
 }
