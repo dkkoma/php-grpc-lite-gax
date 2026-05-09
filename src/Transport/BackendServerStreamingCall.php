@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace GrpcLiteGax\Transport;
 
 use Google\ApiCore\ServerStreamingCallInterface;
+use Google\ApiCore\ApiException;
 use Google\ApiCore\ValidationException;
 use Google\Protobuf\Internal\Message;
+use GrpcLiteGax\Backend\GrpcStatusCode;
 use GrpcLiteGax\Backend\ServerStreamingCall;
 
 /**
@@ -39,21 +41,33 @@ final class BackendServerStreamingCall implements ServerStreamingCallInterface
     #[\Override]
     public function responses(): iterable
     {
-        foreach ($this->call->responses() as $payload) {
-            $message = new $this->decodeType();
-            $message->mergeFromString($payload);
+        try {
+            foreach ($this->call->responses() as $payload) {
+                $message = new $this->decodeType();
+                $message->mergeFromString($payload);
 
-            yield $message;
+                yield $message;
+            }
+        } catch (\Throwable $exception) {
+            throw $this->backendFailure($exception);
         }
     }
 
     #[\Override]
     public function getStatus(): \stdClass
     {
+        try {
+            $code = $this->call->statusCode()->value;
+            $message = $this->call->statusMessage();
+            $metadata = $this->call->trailingMetadata();
+        } catch (\Throwable $exception) {
+            return $this->backendFailureStatus($exception);
+        }
+
         return (object) [
-            'code' => $this->call->statusCode()->value,
-            'details' => $this->call->statusMessage(),
-            'metadata' => $this->call->trailingMetadata(),
+            'code' => $code,
+            'details' => $message,
+            'metadata' => $metadata,
         ];
     }
 
@@ -94,5 +108,27 @@ final class BackendServerStreamingCall implements ServerStreamingCallInterface
     public function setCallCredentials($call_credentials): void
     {
         throw new ValidationException('Call credentials must be provided through GAX call options.');
+    }
+
+    private function backendFailure(\Throwable $exception): ApiException
+    {
+        $previous = $exception instanceof \Exception
+            ? $exception
+            : new \RuntimeException($exception->getMessage(), (int) $exception->getCode(), $exception);
+
+        return ApiException::createFromApiResponse(
+            $exception->getMessage(),
+            GrpcStatusCode::UNAVAILABLE->value,
+            previous: $previous,
+        );
+    }
+
+    private function backendFailureStatus(\Throwable $exception): \stdClass
+    {
+        return (object) [
+            'code' => GrpcStatusCode::UNAVAILABLE->value,
+            'details' => $exception->getMessage(),
+            'metadata' => [],
+        ];
     }
 }

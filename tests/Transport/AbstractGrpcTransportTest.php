@@ -9,6 +9,11 @@ use Google\ApiCore\Call;
 use Google\ApiCore\ValidationException;
 use Google\Protobuf\StringValue;
 use GrpcLiteGax\Backend\GrpcStatusCode;
+use GrpcLiteGax\Backend\ServerStreamingBackend;
+use GrpcLiteGax\Backend\ServerStreamingCall;
+use GrpcLiteGax\Backend\ServerStreamingRequest;
+use GrpcLiteGax\Backend\UnaryBackend;
+use GrpcLiteGax\Backend\UnaryRequest;
 use GrpcLiteGax\Backend\UnaryResponse;
 use GrpcLiteGax\Tests\Fixtures\GaxUnaryCallFixture;
 use GrpcLiteGax\Tests\Support\FakeBackend;
@@ -150,6 +155,53 @@ final class AbstractGrpcTransportTest extends TestCase
         /** @var iterable<int, StringValue> $streamResponses */
         $streamResponses = $stream->readAll();
         iterator_to_array($streamResponses);
+    }
+
+    public function testServerStreamingCallMapsNonOkFinalStatusAfterResponsesToApiException(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueServerStreamingCall(new FakeServerStreamingCall(
+            responses: [$this->stringPayload('first')],
+            statusCode: GrpcStatusCode::UNAVAILABLE,
+            statusMessage: 'stream unavailable after response',
+        ));
+        $transport = new TestGrpcTransport($backend);
+
+        $stream = $transport->startServerStreamingCall(GaxUnaryCallFixture::serverStreamingCall(), []);
+
+        $this->expectException(ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        /** @var iterable<int, StringValue> $streamResponses */
+        $streamResponses = $stream->readAll();
+        iterator_to_array($streamResponses);
+    }
+
+    public function testServerStreamingCallMapsBackendStartFailureToApiException(): void
+    {
+        $transport = new TestGrpcTransport(new class implements UnaryBackend, ServerStreamingBackend {
+            #[\Override]
+            public function call(UnaryRequest $request): UnaryResponse
+            {
+                throw new \RuntimeException('unused');
+            }
+
+            #[\Override]
+            public function start(ServerStreamingRequest $request): ServerStreamingCall
+            {
+                throw new \RuntimeException('backend unavailable');
+            }
+
+            #[\Override]
+            public function close(): void
+            {
+            }
+        });
+
+        $this->expectException(ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        $transport->startServerStreamingCall(GaxUnaryCallFixture::serverStreamingCall(), []);
     }
 
     public function testRejectsInvalidServerStreamingRequestMessage(): void

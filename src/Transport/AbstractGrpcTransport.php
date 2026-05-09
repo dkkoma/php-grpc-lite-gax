@@ -66,8 +66,14 @@ abstract class AbstractGrpcTransport implements TransportInterface
             throw new ValidationException('Server streaming calls require a protobuf response decode type.');
         }
 
+        try {
+            $backendCall = $this->backend->start($request);
+        } catch (\Throwable $exception) {
+            throw $this->backendFailure($exception);
+        }
+
         return new ServerStream(
-            new BackendServerStreamingCall($this->backend->start($request), $decodeType),
+            new BackendServerStreamingCall($backendCall, $decodeType),
             $call->getDescriptor() ?? [],
         );
     }

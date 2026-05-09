@@ -17,8 +17,8 @@ final class GrpcLiteNativeServerStreamingCall implements ServerStreamingCall
 {
     private Call $call;
 
-    /** @var array<string, list<string>> */
-    private array $metadata = [];
+    /** @var array<string, list<string>>|null */
+    private ?array $metadata = null;
 
     /** @var array<string, list<string>> */
     private array $trailingMetadata = [];
@@ -51,11 +51,15 @@ final class GrpcLiteNativeServerStreamingCall implements ServerStreamingCall
     #[\Override]
     public function responses(): iterable
     {
-        $event = $this->call->startBatch([
-            \Grpc\OP_RECV_INITIAL_METADATA => true,
-            \Grpc\OP_RECV_MESSAGE => true,
-        ]);
-        $this->metadata = $this->metadataFrom($this->eventProperty($event, 'metadata'));
+        $ops = [\Grpc\OP_RECV_MESSAGE => true];
+        if ($this->metadata === null) {
+            $ops[\Grpc\OP_RECV_INITIAL_METADATA] = true;
+        }
+
+        $event = $this->call->startBatch($ops);
+        if ($this->metadata === null) {
+            $this->metadata = $this->metadataFrom($this->eventProperty($event, 'metadata'));
+        }
 
         $message = $this->eventProperty($event, 'message');
         while (is_string($message)) {
@@ -87,7 +91,7 @@ final class GrpcLiteNativeServerStreamingCall implements ServerStreamingCall
     #[\Override]
     public function metadata(): array
     {
-        if ($this->metadata === []) {
+        if ($this->metadata === null) {
             $event = $this->call->startBatch([\Grpc\OP_RECV_INITIAL_METADATA => true]);
             $this->metadata = $this->metadataFrom($this->eventProperty($event, 'metadata'));
         }

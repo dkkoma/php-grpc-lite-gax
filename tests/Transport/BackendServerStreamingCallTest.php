@@ -8,6 +8,7 @@ use Google\ApiCore\ValidationException;
 use Google\Protobuf\StringValue;
 use GrpcLiteGax\Backend\GrpcStatusCode;
 use GrpcLiteGax\Tests\Support\FakeServerStreamingCall;
+use GrpcLiteGax\Backend\ServerStreamingCall;
 use GrpcLiteGax\Transport\BackendServerStreamingCall;
 use PHPUnit\Framework\TestCase;
 
@@ -61,6 +62,161 @@ final class BackendServerStreamingCallTest extends TestCase
         $this->expectExceptionMessage('Call credentials must be provided through GAX call options.');
 
         $call->setCallCredentials(new \stdClass());
+    }
+
+    public function testMapsBackendResponseFailureToApiException(): void
+    {
+        $call = new BackendServerStreamingCall(new class implements ServerStreamingCall {
+            #[\Override]
+            public function responses(): iterable
+            {
+                throw new \RuntimeException('response failure');
+            }
+
+            #[\Override]
+            public function statusCode(): GrpcStatusCode
+            {
+                return GrpcStatusCode::OK;
+            }
+
+            #[\Override]
+            public function statusMessage(): string
+            {
+                return '';
+            }
+
+            #[\Override]
+            public function metadata(): array
+            {
+                return [];
+            }
+
+            #[\Override]
+            public function trailingMetadata(): array
+            {
+                return [];
+            }
+
+            #[\Override]
+            public function getPeer(): string
+            {
+                return 'peer';
+            }
+
+            #[\Override]
+            public function cancel(): void
+            {
+            }
+        }, StringValue::class);
+
+        $this->expectException(\Google\ApiCore\ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        iterator_to_array($call->responses());
+    }
+
+    public function testMapsBackendThrowableResponseFailureToApiException(): void
+    {
+        $call = new BackendServerStreamingCall(new class implements ServerStreamingCall {
+            #[\Override]
+            public function responses(): iterable
+            {
+                throw new \Error('response error');
+            }
+
+            #[\Override]
+            public function statusCode(): GrpcStatusCode
+            {
+                return GrpcStatusCode::OK;
+            }
+
+            #[\Override]
+            public function statusMessage(): string
+            {
+                return '';
+            }
+
+            #[\Override]
+            public function metadata(): array
+            {
+                return [];
+            }
+
+            #[\Override]
+            public function trailingMetadata(): array
+            {
+                return [];
+            }
+
+            #[\Override]
+            public function getPeer(): string
+            {
+                return 'peer';
+            }
+
+            #[\Override]
+            public function cancel(): void
+            {
+            }
+        }, StringValue::class);
+
+        $this->expectException(\Google\ApiCore\ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        iterator_to_array($call->responses());
+    }
+
+
+    public function testMapsBackendStatusFailureToUnavailableStatus(): void
+    {
+        $call = new BackendServerStreamingCall(new class implements ServerStreamingCall {
+            #[\Override]
+            public function responses(): iterable
+            {
+                return [];
+            }
+
+            #[\Override]
+            public function statusCode(): GrpcStatusCode
+            {
+                throw new \RuntimeException('status failure');
+            }
+
+            #[\Override]
+            public function statusMessage(): string
+            {
+                return '';
+            }
+
+            #[\Override]
+            public function metadata(): array
+            {
+                return [];
+            }
+
+            #[\Override]
+            public function trailingMetadata(): array
+            {
+                return [];
+            }
+
+            #[\Override]
+            public function getPeer(): string
+            {
+                return 'peer';
+            }
+
+            #[\Override]
+            public function cancel(): void
+            {
+            }
+        }, StringValue::class);
+
+        $status = $call->getStatus();
+
+        self::assertSame(GrpcStatusCode::UNAVAILABLE->value, $status->code);
+        self::assertSame('status failure', $status->details);
+        self::assertSame([], $status->metadata);
     }
 
     private function stringPayload(string $value): string

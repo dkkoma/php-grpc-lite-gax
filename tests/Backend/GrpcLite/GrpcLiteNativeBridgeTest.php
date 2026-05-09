@@ -163,6 +163,22 @@ final class GrpcLiteNativeBridgeTest extends TestCase
         self::assertSame(PHP_INT_MAX, Call::$instances[0]->deadline->microseconds);
     }
 
+    public function testDoesNotReceiveServerStreamingInitialMetadataTwice(): void
+    {
+        Call::$nextReceiveEvents = [
+            (object) ['metadata' => []],
+            (object) ['message' => 'first'],
+            (object) ['message' => null],
+        ];
+        $bridge = new GrpcLiteNativeBridge('service.googleapis.com:443');
+        $call = $bridge->serverStreamingCall('/service.v1.Service/List', '', [], null);
+
+        self::assertSame([], $call->metadata());
+        self::assertSame(['first'], iterator_to_array($call->responses()));
+        self::assertArrayHasKey(OP_RECV_INITIAL_METADATA, Call::$instances[0]->batches[1]);
+        self::assertArrayNotHasKey(OP_RECV_INITIAL_METADATA, Call::$instances[0]->batches[2]);
+    }
+
     public function testRejectsServerStreamingNativeEventWithoutStatusCode(): void
     {
         Call::$nextReceiveEvent = (object) [

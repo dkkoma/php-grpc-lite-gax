@@ -27,9 +27,35 @@ final class ServerStreamingRequestTest extends TestCase
     public function testRejectsEmptyServiceOrMethod(string $service, string $method): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('server streaming service and method must be non-empty.');
+        $this->expectExceptionMessage($service === '' ? 'service must not be empty.' : 'method must not be empty.');
 
         new ServerStreamingRequest($service, $method, 'payload');
+    }
+
+    #[DataProvider('invalidServiceOrMethodTokenProvider')]
+    public function testRejectsInvalidServiceOrMethodToken(string $service, string $method, string $message): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        new ServerStreamingRequest($service, $method, 'payload');
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function invalidServiceOrMethodTokenProvider(): iterable
+    {
+        yield 'invalid service' => [
+            '9service.v1.Service',
+            'List',
+            'service must be a canonical protobuf service name.',
+        ];
+        yield 'invalid method' => [
+            'service.v1.Service',
+            'Bad-Method',
+            'method must be a protobuf method name.',
+        ];
     }
 
     /**
@@ -66,7 +92,7 @@ final class ServerStreamingRequestTest extends TestCase
     public function testRejectsInvalidTimeout(float $timeoutSeconds): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('server streaming timeout must be finite and positive.');
+        $this->expectExceptionMessage('timeoutSeconds must be finite and positive when provided.');
 
         new ServerStreamingRequest('service.v1.Service', 'List', 'payload', timeoutSeconds: $timeoutSeconds);
     }

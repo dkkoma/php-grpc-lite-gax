@@ -47,7 +47,11 @@ final class SpannerEmulatorSmokeTest extends TestCase
     {
         $host = getenv('SPANNER_EMULATOR_HOST');
         if (!is_string($host) || $host === '') {
-            self::markTestSkipped('SPANNER_EMULATOR_HOST is required for the Spanner smoke suite.');
+            if (getenv('SPANNER_SMOKE_SKIP_MISSING_EMULATOR') === '1') {
+                self::markTestSkipped('SPANNER_EMULATOR_HOST is required for the Spanner smoke suite.');
+            }
+
+            self::fail('SPANNER_EMULATOR_HOST is required for the Spanner smoke suite.');
         }
 
         $suffix = strtolower(bin2hex(random_bytes(4)));

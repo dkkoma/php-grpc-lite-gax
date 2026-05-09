@@ -19,14 +19,26 @@ final readonly class ServerStreamingRequest
         public array $metadata = [],
         public ?float $timeoutSeconds = null,
     ) {
-        if ($this->service === '' || $this->method === '') {
-            throw new \InvalidArgumentException('server streaming service and method must be non-empty.');
+        if ($this->service === '') {
+            throw new \InvalidArgumentException('service must not be empty.');
+        }
+
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $this->service)) {
+            throw new \InvalidArgumentException('service must be a canonical protobuf service name.');
+        }
+
+        if ($this->method === '') {
+            throw new \InvalidArgumentException('method must not be empty.');
+        }
+
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $this->method)) {
+            throw new \InvalidArgumentException('method must be a protobuf method name.');
         }
 
         MetadataValidator::assertRequestMetadata($this->metadata);
 
         if ($this->timeoutSeconds !== null && (!is_finite($this->timeoutSeconds) || $this->timeoutSeconds <= 0)) {
-            throw new \InvalidArgumentException('server streaming timeout must be finite and positive.');
+            throw new \InvalidArgumentException('timeoutSeconds must be finite and positive when provided.');
         }
     }
 

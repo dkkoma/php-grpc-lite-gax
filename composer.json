@@ -38,7 +38,7 @@
     ],
     "test": "phpunit --testsuite unit",
     "test:native-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite native-smoke",
-    "test:spanner-smoke": "SPANNER_EMULATOR_HOST=${SPANNER_EMULATOR_HOST:-host.docker.internal:9010} php -d extension=grpc.so vendor/bin/phpunit --testsuite spanner-smoke",
+    "test:spanner-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite spanner-smoke",
     "test:coverage": "XDEBUG_MODE=coverage phpunit --testsuite unit --coverage-text",
     "validate-project": "composer validate --strict",
     "verify": [
@@ -46,6 +46,10 @@
       "@lint",
       "@test:coverage",
       "@test:native-smoke"
+    ],
+    "verify:smoke": [
+      "@test:native-smoke",
+      "@test:spanner-smoke"
     ]
   }
 }
