@@ -2,7 +2,7 @@
 
 ## Goal
 
-This package provides a PHP Composer library that adapts `google/gax` transport calls to lightweight gRPC backends. The first supported path is unary RPC. Streaming methods remain explicit non-goals until a backend contract for streaming is designed.
+This package provides a PHP Composer library that adapts `google/gax` `TransportInterface` calls to lightweight gRPC backends. The current supported call types are unary and server streaming. The first production backend path is `php-grpc-lite`; FrankenPHP grpc-go remains behind the same backend boundary.
 
 ## Layering
 
@@ -11,60 +11,36 @@ The dependency direction is:
 ```text
 Google\ApiCore\Transport\TransportInterface
   -> AbstractGrpcTransport
-  -> UnaryBackend
+  -> UnaryBackend / ServerStreamingBackend
   -> concrete backend
 ```
 
-`AbstractGrpcTransport` owns the GAX-facing contract. It converts a GAX `Call` and call options into a backend `UnaryRequest`, delegates execution to `UnaryBackend`, and converts the backend `UnaryResponse` back into the promise-based GAX transport result. It also normalizes GAX credential callbacks into request metadata before the backend boundary.
+`AbstractGrpcTransport` owns the GAX-facing contract. It converts GAX `Call` objects and call options into backend value objects, adds GAX header credentials as request metadata, delegates to the backend, and maps backend responses back to GAX promises or `ServerStream` objects. Backend implementations must not depend on GAX client internals.
 
-`UnaryBackend` owns only unary request execution. Backend implementations must not depend on GAX client internals. Current implementations are:
+## Backend Model
 
-- Current: `FrankenGrpcBackend`, the FrankenPHP grpc-go bridge.
-- Current: `FakeBackend`, the repository test double under `tests/Support`.
-- Current: `GrpcLiteBackend`, the `php-grpc-lite` / nghttp2 bridge.
+`UnaryRequest` and `ServerStreamingRequest` contain the canonical service name, method name, serialized protobuf payload, request metadata, and optional timeout in seconds. Each derives the gRPC path as `/{service}/{method}`.
 
-## Unary Model
+`UnaryResponse` contains the serialized response payload, canonical gRPC status, status message, initial metadata, and trailing/status metadata. Non-OK unary responses are mapped to `Google\ApiCore\ApiException`.
 
-`UnaryRequest` contains the canonical service name, method name, serialized protobuf payload, request metadata, and optional timeout in seconds. It can derive the gRPC path as `/{service}/{method}`.
+`ServerStreamingCall` exposes an iterable of serialized response payloads plus final status, initial metadata, trailing metadata, peer, and cancellation. `BackendServerStreamingCall` decodes each payload into the GAX response type and lets `Google\ApiCore\ServerStream` check the final status.
 
-`UnaryResponse` contains the serialized protobuf response payload, canonical gRPC status, status message, initial response metadata, and trailing/status metadata. Successful responses are decoded by `AbstractGrpcTransport` and expose only initial metadata to `metadataCallback`; non-OK responses are mapped to `Google\ApiCore\ApiException` with trailing/status metadata.
-
-`AbstractGrpcTransport::close()` delegates lifecycle cleanup to the backend. Per-call cancellation is not part of the current unary backend contract; it should be designed when a concrete backend can expose cancellable in-flight calls consistently.
-
-`UnaryBackend::close()` is idempotent. After close, `call()` must fail predictably with `BackendClosedException`. Backend transport failures that do not produce a gRPC status may throw; `AbstractGrpcTransport` owns mapping those failures to GAX `ApiException` with `GrpcStatusCode::UNAVAILABLE`.
-
-For the current unary slice, initial metadata and trailing/status metadata are separate in `UnaryResponse`. Backends that cannot distinguish the two may keep using `metadata`; backends that can distinguish them should put status trailers in `trailingMetadata`.
-
-## FrankenGrpcBackend
-
-`FrankenGrpcBackend` is the FrankenPHP bridge to grpc-go. It depends only on `UnaryBackend` inputs and outputs, not on GAX `Call` objects. Request mapping sends `UnaryRequest::path()` as the fully qualified gRPC method path, `payload` as the serialized protobuf request body, metadata as lowercase gRPC metadata, and `timeoutSeconds` as a relative duration from which the backend derives the grpc-go deadline or context timeout.
-
-Response mapping converts grpc-go response bytes into `UnaryResponse::payload`, trailers/headers into response metadata, and grpc-go canonical status into `GrpcStatusCode` plus status message. Transport-level failures that do not produce a gRPC status should map to `GrpcStatusCode::UNAVAILABLE` unless a more precise canonical status is available.
-
-The backend owns grpc-go channel/client lifecycle. `close()` must release backend resources, be safe to call more than once, and make later calls fail predictably. Per-call cancellation remains outside the current contract.
-
-The PHP implementation uses an internal bridge interface so grpc-go bindings remain replaceable. The bridge accepts backend-native scalar data: path, payload, metadata, and timeout duration. `FrankenGrpcBridge` is responsible for normalizing grpc-go output into `FrankenGrpcResponse`; `FrankenGrpcBackend` maps that domain-shaped bridge response into `UnaryResponse`.
+`close()` is idempotent on backends. After close, backend calls must fail predictably with `BackendClosedException`.
 
 ## GrpcLiteBackend
 
-`GrpcLiteBackend` is the `php-grpc-lite` / nghttp2 backend. It must share the same `UnaryBackend` contract as `FrankenGrpcBackend`: no GAX `Call` dependency, one unary request in, one unary response or backend exception out.
+`GrpcLiteBackend` implements both unary and server streaming contracts. The native bridge connects directly to the low-level `php-grpc-lite` extension surface: `Grpc\Channel`, `Grpc\Call`, and `Grpc\Timeval`. It does not route through `grpc/grpc` Composer wrapper classes such as `BaseStub`, `UnaryCall`, or `ServerStreamingCall`.
 
-The native bridge connects to the low-level `php-grpc-lite` extension surface: `Grpc\Channel`, `Grpc\Call`, and `Grpc\Timeval`. It does not route calls through the `grpc/grpc` Composer wrapper classes such as `BaseStub` or `UnaryCall`. Request mapping sends `UnaryRequest::path()` as the call method path, sends the serialized protobuf `payload` as the gRPC request message body, forwards lowercase metadata as gRPC metadata headers, and treats `timeoutSeconds` as a relative duration converted to an absolute `Grpc\Timeval` deadline.
+Unary calls send initial metadata, one request message, and close-from-client in a single batch, then receive initial metadata, one response message, and client status.
 
-Response mapping extracts the response message bytes into `UnaryResponse::payload`, maps initial metadata and trailing/status metadata separately, and converts the gRPC status object into `GrpcStatusCode` plus status message. Missing or malformed native status is a backend failure and is thrown so `AbstractGrpcTransport` maps it to `UNAVAILABLE`; unknown integer status values map to `GrpcStatusCode::UNKNOWN`. If nghttp2 or `php-grpc-lite` fails before a gRPC status is available, the backend may throw and let `AbstractGrpcTransport` map the failure to `UNAVAILABLE`.
+Server streaming calls send initial metadata, one request message, and close-from-client, then receive initial metadata plus messages until the native call returns no message. Final status is read separately with `OP_RECV_STATUS_ON_CLIENT`. Unknown integer status values map to `GrpcStatusCode::UNKNOWN`; malformed native status is a backend failure and is mapped by `AbstractGrpcTransport` to `UNAVAILABLE`.
 
-`GrpcLiteBackend::close()` should release client/session resources, be idempotent, and make later calls fail with `BackendClosedException`.
+`GrpcLiteTransport::build()` is the user-facing construction path. Runtime users provide an endpoint and optional channel options. The Dev Container builds `dkkoma/php-grpc-lite` as `grpc.so` but does not load it by default, so unit tests use stubs. Native and emulator smoke scripts explicitly load `grpc.so`.
 
-`GrpcLiteTransport::build()` is the user-facing construction path. Its runtime target is `dkkoma/php-grpc-lite`, which registers a `grpc` extension, defines `Grpc\VERSION`, and provides the low-level `Grpc\*` classes consumed by `GrpcLiteNativeBridge`. The package suggests `dkkoma/php-grpc-lite` until a stable non-dev Composer constraint is available. The Dev Container builds the extension from the pinned package source commit but does not load it by default, so deterministic unit tests can keep using test stubs. `composer test:native-smoke` explicitly loads `grpc.so` and verifies the real native surface.
+## Smoke Coverage
 
-## Validation Boundary
-
-Shared value objects validate backend-facing invariants early: non-empty service/method names, valid metadata shape, positive timeouts, and canonical gRPC status values. Concrete backends may add protocol-specific validation, but they should not redefine these shared invariants.
-
-## Public Boundary
-
-The current backend and abstract transport types are internal implementation contracts. `UnaryBackend`, `UnaryRequest`, `UnaryResponse`, `GrpcStatusCode`, and `AbstractGrpcTransport` may change while the first concrete backends are being designed. User-facing APIs should be concrete transports or factories such as `GrpcLiteTransport::build()`.
+`composer test:native-smoke` verifies the real `php-grpc-lite` extension surface. `composer test:spanner-smoke` runs against a Spanner emulator with `google/cloud-spanner` generated clients, using this repository's `GrpcLiteTransport`. It creates an instance and database, executes DML in a read-write transaction, commits, and verifies `ExecuteStreamingSql` with a streaming `SELECT`.
 
 ## Current Scope
 
-The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, `AbstractGrpcTransport`, `GrpcLiteTransport`, `UnaryBackend`, `FakeBackend`, `FrankenGrpcBackend`, `GrpcLiteBackend`, backend bridge boundaries, backend contract tests, and transport tests.
+The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, `AbstractGrpcTransport`, `GrpcLiteTransport`, unary and server-streaming backend contracts, `FakeBackend`, `FrankenGrpcBackend`, `GrpcLiteBackend`, contract tests, native smoke tests, and Spanner emulator smoke tests.
