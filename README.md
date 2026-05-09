@@ -18,15 +18,18 @@ composer require dkkoma/php-grpc-lite-gax google/gax
 For the grpc-lite backend, install and load the runtime provider:
 
 ```sh
-pie install dkkoma/php-grpc-lite
+pie install dkkoma/php-grpc-lite --skip-enable-extension --no-interaction
 echo 'extension=grpc' > /path/to/php/conf.d/20-php-grpc-lite.ini
 php -m | grep -x grpc
+php -r 'var_dump(extension_loaded("grpc"), defined("Grpc\\VERSION"), defined("Grpc\\VERSION") ? constant("Grpc\\VERSION") : null);'
 ```
 
 `dkkoma/php-grpc-lite` is a PIE PHP extension package, not an application
 Composer library. It builds a PHP module named `grpc`, so do not load it at the
-same time as the official `ext-grpc` module. PIE needs a normal PHP extension
-build toolchain and an archive extractor such as PHP `zip`, `unzip`, or `7z`.
+same time as the official `ext-grpc` module. The official `ext-grpc` module is
+not a valid runtime provider for `GrpcLiteTransport`; verify the provider with
+the `Grpc\VERSION` check above. PIE needs a normal PHP extension build toolchain
+and an archive extractor such as PHP `zip`, `unzip`, or `7z`.
 
 For the FrankenPHP backend, run PHP through a FrankenPHP binary that includes
 the `FrankenGrpc` extension from `dkkoma/frankenphp-grpc-go-client`.
