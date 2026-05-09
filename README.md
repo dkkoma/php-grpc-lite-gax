@@ -10,8 +10,14 @@ The transports support unary and server-streaming calls. They are intended for
 generated google-cloud-php GAPIC clients that accept a `transport` option.
 
 This repository is an experiment around the GAX `TransportInterface` boundary.
-The adapter path works, but the GAX patch approach was archived as too heavy
-for normal application operation. See
+The key finding is that when a prebuilt `TransportInterface` object is passed
+to GAX, the client-resolved `apiEndpoint` is not available to that transport.
+That prevents a custom runtime from reusing google-cloud-php's normal default
+endpoint, emulator, universe domain, and mTLS resolution without either asking
+users for the endpoint or patching GAX's transport construction path.
+
+A GAX `transportFactory` patch was implemented to validate the idea, but that
+approach was archived as too heavy for normal application operation. See
 [`docs/transport-interface-experiment.md`](docs/transport-interface-experiment.md)
 for the conclusion and recommended next direction.
 
