@@ -201,7 +201,7 @@ final class FrankenSpannerEmulatorSmokeTest extends TestCase
         return [
             'apiEndpoint' => $host,
             'credentials' => new InsecureCredentialsWrapper(),
-            'transport' => FrankenGrpcTransport::build($host),
+            'transport' => FrankenGrpcTransport::build($host, ['plaintext' => true]),
             'disableRetries' => true,
         ];
     }
