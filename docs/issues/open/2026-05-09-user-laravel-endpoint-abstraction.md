@@ -11,6 +11,13 @@ endpoints. The current README Laravel example asks users to configure a
 `services.spanner.endpoint` value and pass it both as `apiEndpoint` and into
 `GrpcLiteTransport::build()`.
 
+Follow-up implementation review confirmed that `google/cloud-spanner` generated
+clients read `SPANNER_EMULATOR_HOST` and default `apiEndpoint`, insecure channel
+credentials, and empty application credentials for emulator use. This repository
+still needs an endpoint before passing a prebuilt `TransportInterface` object to
+GAX, because GAX does not construct or reconfigure user-supplied transport
+objects.
+
 ## Impact
 
 The documented Laravel integration exposes a lower-level transport concern than
@@ -20,13 +27,17 @@ transport assembly tool instead of a drop-in runtime selection layer.
 ## Proposed Fix
 
 Clarify the intended abstraction. Keep endpoint-aware transport construction for
-low-level usage, but provide or document a higher-level helper that derives the
-default google-cloud endpoint from the selected service and only requires an
-endpoint for emulator/custom endpoint use cases.
+low-level usage, but provide or document a higher-level helper that follows
+google-cloud-php conventions: use the service default endpoint normally, read
+`SPANNER_EMULATOR_HOST` for emulator use, and only require explicit endpoint
+configuration for custom/private endpoints.
 
 ## Fix Summary
 
 
 ## Verification
 
-Not run; issue capture only.
+Read `vendor/google/cloud-spanner/src/V1/Client/SpannerClient.php`,
+`vendor/google/cloud-spanner/src/SpannerClient.php`, and
+`vendor/google/gax/src/GapicClientTrait.php` to confirm emulator and
+preconstructed transport behavior.
