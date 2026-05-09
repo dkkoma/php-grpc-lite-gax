@@ -40,9 +40,10 @@
     ],
     "test": "phpunit --testsuite unit",
     "test:franken-smoke": "tools/franken-smoke.sh",
+    "test:franken-spanner-smoke": "tools/franken-smoke.sh --testsuite franken-spanner-smoke",
     "test:native-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite native-smoke",
     "test:pubsub-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite pubsub-smoke",
-    "test:spanner-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite spanner-smoke",
+    "test:spanner-smoke": "tools/spanner-smoke.sh",
     "test:coverage": "XDEBUG_MODE=coverage phpunit --testsuite unit --coverage-text",
     "validate-project": "composer validate --strict",
     "verify": [

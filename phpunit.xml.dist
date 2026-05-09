@@ -16,7 +16,10 @@
             <exclude>tests/Integration/Spanner</exclude>
         </testsuite>
         <testsuite name="franken-smoke">
-            <directory>tests/Integration/Franken</directory>
+            <file>tests/Integration/Franken/FrankenGrpcNativeSurfaceTest.php</file>
+        </testsuite>
+        <testsuite name="franken-spanner-smoke">
+            <file>tests/Integration/Franken/FrankenSpannerEmulatorSmokeTest.php</file>
         </testsuite>
         <testsuite name="spanner-smoke">
             <directory>tests/Integration/Spanner</directory>
