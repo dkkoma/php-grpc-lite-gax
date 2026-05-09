@@ -12,6 +12,7 @@ use GrpcLiteGax\Backend\GrpcStatusCode;
 use GrpcLiteGax\Backend\UnaryResponse;
 use GrpcLiteGax\Tests\Fixtures\GaxUnaryCallFixture;
 use GrpcLiteGax\Tests\Support\FakeBackend;
+use GrpcLiteGax\Tests\Support\FakeServerStreamingCall;
 use GrpcLiteGax\Tests\Support\TestHeaderCredentials;
 use GrpcLiteGax\Tests\Support\TestGrpcTransport;
 use GrpcLiteGax\Tests\Support\ThrowingBackend;
@@ -94,11 +95,99 @@ final class AbstractGrpcTransportTest extends TestCase
 
     public function testRejectsUnsupportedStreamingCalls(): void
     {
-        $transport = new TestGrpcTransport(new FakeBackend());
+        $transport = new TestGrpcTransport(new ThrowingBackend(new \RuntimeException('unused')));
 
         $this->expectException(\BadMethodCallException::class);
 
         $transport->startServerStreamingCall(GaxUnaryCallFixture::call(), []);
+    }
+
+    public function testServerStreamingCallDelegatesToBackendAndDecodesResponses(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueServerStreamingCall(new FakeServerStreamingCall([
+            $this->stringPayload('first'),
+            $this->stringPayload('second'),
+        ], metadata: ['response-header' => ['value']]));
+        $transport = new TestGrpcTransport($backend);
+
+        $stream = $transport->startServerStreamingCall(
+            GaxUnaryCallFixture::serverStreamingCall(),
+            GaxUnaryCallFixture::options(),
+        );
+
+        /** @var iterable<int, StringValue> $streamResponses */
+        $streamResponses = $stream->readAll();
+        $responses = iterator_to_array($streamResponses);
+
+        self::assertCount(2, $responses);
+        self::assertSame('first', $responses[0]->getValue());
+        self::assertSame('second', $responses[1]->getValue());
+
+        $request = $backend->lastServerStreamingRequest();
+        self::assertSame('google.example.v1.ExampleService', $request->service);
+        self::assertSame('ListExamples', $request->method);
+        self::assertSame('request-value', $this->decodeStringPayload($request->payload));
+        self::assertSame(1.5, $request->timeoutSeconds);
+    }
+
+    public function testServerStreamingCallMapsNonOkFinalStatusToApiException(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueServerStreamingCall(new FakeServerStreamingCall(
+            responses: [],
+            statusCode: GrpcStatusCode::UNAVAILABLE,
+            statusMessage: 'stream unavailable',
+            trailingMetadata: ['retry-info-bin' => ['raw']],
+        ));
+        $transport = new TestGrpcTransport($backend);
+
+        $stream = $transport->startServerStreamingCall(GaxUnaryCallFixture::serverStreamingCall(), []);
+
+        $this->expectException(ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        /** @var iterable<int, StringValue> $streamResponses */
+        $streamResponses = $stream->readAll();
+        iterator_to_array($streamResponses);
+    }
+
+    public function testRejectsInvalidServerStreamingRequestMessage(): void
+    {
+        $transport = new TestGrpcTransport(new FakeBackend());
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Server streaming calls require a protobuf request message.');
+
+        $transport->startServerStreamingCall(
+            new Call(
+                method: 'google.example.v1.ExampleService/ListExamples',
+                decodeType: StringValue::class,
+                message: 'request-value',
+                callType: Call::SERVER_STREAMING_CALL,
+            ),
+            [],
+        );
+    }
+
+    public function testRejectsInvalidServerStreamingDecodeType(): void
+    {
+        $backend = new FakeBackend();
+        $backend->enqueueServerStreamingCall(new FakeServerStreamingCall([]));
+        $transport = new TestGrpcTransport($backend);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Server streaming calls require a protobuf response decode type.');
+
+        $transport->startServerStreamingCall(
+            new Call(
+                method: 'google.example.v1.ExampleService/ListExamples',
+                decodeType: \stdClass::class,
+                message: new StringValue(['value' => 'request-value']),
+                callType: Call::SERVER_STREAMING_CALL,
+            ),
+            [],
+        );
     }
 
     public function testRejectsUnsupportedClientStreamingCalls(): void

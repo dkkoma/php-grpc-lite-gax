@@ -7,6 +7,7 @@ namespace GrpcLiteGax\Backend\GrpcLite;
 use Grpc\Channel;
 use Grpc\ChannelCredentials;
 use Grpc\Timeval;
+use GrpcLiteGax\Backend\ServerStreamingCall;
 use GrpcLiteGax\Backend\GrpcStatusCode;
 
 /**
@@ -72,6 +73,25 @@ final class GrpcLiteNativeBridge implements GrpcLiteBridge
             statusMessage: $this->statusMessage($status),
             metadata: $this->metadataFrom($this->eventProperty($event, 'metadata')),
             trailingMetadata: $this->metadataFrom($this->eventProperty($status, 'metadata')),
+        );
+    }
+
+    /**
+     * @param array<string, list<string>> $metadata
+     */
+    #[\Override]
+    public function serverStreamingCall(
+        string $path,
+        string $payload,
+        array $metadata,
+        ?float $timeoutSeconds,
+    ): ServerStreamingCall {
+        return new GrpcLiteNativeServerStreamingCall(
+            channel: $this->channel,
+            path: $path,
+            payload: $payload,
+            metadata: $metadata,
+            deadline: $this->deadline($timeoutSeconds),
         );
     }
 

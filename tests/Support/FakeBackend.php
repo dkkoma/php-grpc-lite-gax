@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace GrpcLiteGax\Tests\Support;
 
 use GrpcLiteGax\Backend\BackendClosedException;
+use GrpcLiteGax\Backend\ServerStreamingBackend;
+use GrpcLiteGax\Backend\ServerStreamingCall;
+use GrpcLiteGax\Backend\ServerStreamingRequest;
 use GrpcLiteGax\Backend\UnaryBackend;
 use GrpcLiteGax\Backend\UnaryRequest;
 use GrpcLiteGax\Backend\UnaryResponse;
 
-final class FakeBackend implements UnaryBackend
+final class FakeBackend implements UnaryBackend, ServerStreamingBackend
 {
     /** @var list<UnaryRequest> */
     private array $requests = [];
@@ -17,11 +20,22 @@ final class FakeBackend implements UnaryBackend
     /** @var list<UnaryResponse> */
     private array $responses = [];
 
+    /** @var list<ServerStreamingRequest> */
+    private array $serverStreamingRequests = [];
+
+    /** @var list<ServerStreamingCall> */
+    private array $serverStreamingCalls = [];
+
     private bool $closed = false;
 
     public function enqueueResponse(UnaryResponse $response): void
     {
         $this->responses[] = $response;
+    }
+
+    public function enqueueServerStreamingCall(ServerStreamingCall $call): void
+    {
+        $this->serverStreamingCalls[] = $call;
     }
 
     #[\Override]
@@ -38,6 +52,22 @@ final class FakeBackend implements UnaryBackend
         }
 
         return array_shift($this->responses);
+    }
+
+    #[\Override]
+    public function start(ServerStreamingRequest $request): ServerStreamingCall
+    {
+        if ($this->closed) {
+            throw new BackendClosedException();
+        }
+
+        $this->serverStreamingRequests[] = $request;
+
+        if ($this->serverStreamingCalls === []) {
+            throw new \UnderflowException('FakeBackend has no queued server streaming call.');
+        }
+
+        return array_shift($this->serverStreamingCalls);
     }
 
     #[\Override]
@@ -61,6 +91,15 @@ final class FakeBackend implements UnaryBackend
         }
 
         return $this->requests[array_key_last($this->requests)];
+    }
+
+    public function lastServerStreamingRequest(): ServerStreamingRequest
+    {
+        if ($this->serverStreamingRequests === []) {
+            throw new \UnderflowException('FakeBackend has not received a server streaming request.');
+        }
+
+        return $this->serverStreamingRequests[array_key_last($this->serverStreamingRequests)];
     }
 
     public function pendingResponseCount(): int

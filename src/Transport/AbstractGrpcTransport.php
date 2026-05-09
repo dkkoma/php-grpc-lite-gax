@@ -14,6 +14,8 @@ use Google\ApiCore\Transport\TransportInterface;
 use Google\ApiCore\ValidationException;
 use Google\Protobuf\Internal\Message;
 use GrpcLiteGax\Backend\GrpcStatusCode;
+use GrpcLiteGax\Backend\ServerStreamingBackend;
+use GrpcLiteGax\Backend\ServerStreamingRequest;
 use GrpcLiteGax\Backend\UnaryBackend;
 use GrpcLiteGax\Backend\UnaryRequest;
 use GrpcLiteGax\Backend\UnaryResponse;
@@ -54,7 +56,20 @@ abstract class AbstractGrpcTransport implements TransportInterface
     #[\Override]
     public function startServerStreamingCall(Call $call, array $options): ServerStream
     {
-        throw new \BadMethodCallException('Server streaming calls are not supported by this transport.');
+        if (!$this->backend instanceof ServerStreamingBackend) {
+            throw new \BadMethodCallException('Server streaming calls are not supported by this backend.');
+        }
+
+        $request = $this->buildServerStreamingRequest($call, $options);
+        $decodeType = $call->getDecodeType();
+        if (!is_subclass_of($decodeType, Message::class)) {
+            throw new ValidationException('Server streaming calls require a protobuf response decode type.');
+        }
+
+        return new ServerStream(
+            new BackendServerStreamingCall($this->backend->start($request), $decodeType),
+            $call->getDescriptor() ?? [],
+        );
     }
 
     /**
@@ -105,6 +120,27 @@ abstract class AbstractGrpcTransport implements TransportInterface
         }
 
         return new UnaryRequest(
+            service: $service,
+            method: $method,
+            payload: $message->serializeToString(),
+            metadata: $this->normalizeMetadata($this->headersWithCredentials($options)),
+            timeoutSeconds: $this->timeoutSeconds($options['timeoutMillis'] ?? null),
+        );
+    }
+
+    /**
+     * @param array<mixed> $options
+     */
+    private function buildServerStreamingRequest(Call $call, array $options): ServerStreamingRequest
+    {
+        [$service, $method] = $this->splitMethod($call->getMethod());
+        $message = $call->getMessage();
+
+        if (!$message instanceof Message) {
+            throw new ValidationException('Server streaming calls require a protobuf request message.');
+        }
+
+        return new ServerStreamingRequest(
             service: $service,
             method: $method,
             payload: $message->serializeToString(),

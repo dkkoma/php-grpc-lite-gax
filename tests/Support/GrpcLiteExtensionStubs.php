@@ -24,6 +24,11 @@ namespace Grpc {
             {
                 return new self('ssl');
             }
+
+            public static function createInsecure(): self
+            {
+                return new self('insecure');
+            }
         }
 
         final class Timeval
@@ -78,8 +83,13 @@ namespace Grpc {
 
             public static ?object $nextReceiveEvent = null;
 
+            /** @var list<object> */
+            public static array $nextReceiveEvents = [];
+
             /** @var list<array<int, mixed>> */
             public array $batches = [];
+
+            public bool $cancelled = false;
 
             public function __construct(
                 public readonly Channel $channel,
@@ -104,7 +114,21 @@ namespace Grpc {
                     ];
                 }
 
+                if (array_key_exists(OP_RECV_MESSAGE, $ops) || array_key_exists(OP_RECV_INITIAL_METADATA, $ops)) {
+                    return array_shift(self::$nextReceiveEvents) ?? new \stdClass();
+                }
+
                 return new \stdClass();
+            }
+
+            public function getPeer(): string
+            {
+                return $this->channel->target;
+            }
+
+            public function cancel(): void
+            {
+                $this->cancelled = true;
             }
         }
     }

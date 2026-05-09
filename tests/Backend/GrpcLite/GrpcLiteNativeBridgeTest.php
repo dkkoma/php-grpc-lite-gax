@@ -8,10 +8,15 @@ use Grpc\Call;
 use Grpc\Channel;
 use Grpc\ChannelCredentials;
 use GrpcLiteGax\Backend\GrpcLite\GrpcLiteNativeBridge;
+use GrpcLiteGax\Backend\GrpcLite\GrpcLiteNativeServerStreamingCall;
 use GrpcLiteGax\Backend\GrpcStatusCode;
 use PHPUnit\Framework\TestCase;
 
+use const Grpc\OP_RECV_INITIAL_METADATA;
+use const Grpc\OP_RECV_MESSAGE;
+use const Grpc\OP_RECV_STATUS_ON_CLIENT;
 use const Grpc\OP_SEND_INITIAL_METADATA;
+use const Grpc\OP_SEND_CLOSE_FROM_CLIENT;
 use const Grpc\OP_SEND_MESSAGE;
 
 final class GrpcLiteNativeBridgeTest extends TestCase
@@ -22,6 +27,7 @@ final class GrpcLiteNativeBridgeTest extends TestCase
         Channel::$instances = [];
         Call::$instances = [];
         Call::$nextReceiveEvent = null;
+        Call::$nextReceiveEvents = [];
     }
 
     public function testCreatesChannelWithDefaultSslCredentials(): void
@@ -86,6 +92,106 @@ final class GrpcLiteNativeBridgeTest extends TestCase
         self::assertSame(GrpcStatusCode::UNKNOWN, $response->statusCode);
         self::assertSame('unexpected', $response->statusMessage);
         self::assertSame(PHP_INT_MAX, Call::$instances[0]->deadline->microseconds);
+    }
+
+    public function testMapsServerStreamingCallToNativeCallSurface(): void
+    {
+        Call::$nextReceiveEvents = [
+            (object) [
+                'metadata' => ['content-type' => ['application/grpc']],
+                'message' => 'first',
+            ],
+            (object) ['message' => 'second'],
+            (object) ['message' => null],
+        ];
+        Call::$nextReceiveEvent = (object) [
+            'status' => (object) [
+                'code' => 0,
+                'details' => '',
+                'metadata' => ['grpc-status' => ['0']],
+            ],
+        ];
+        $bridge = new GrpcLiteNativeBridge('service.googleapis.com:443');
+
+        $call = $bridge->serverStreamingCall(
+            path: '/service.v1.Service/List',
+            payload: 'request-payload',
+            metadata: ['request-header' => ['value']],
+            timeoutSeconds: 1.5,
+        );
+
+        self::assertInstanceOf(GrpcLiteNativeServerStreamingCall::class, $call);
+        self::assertSame(['first', 'second'], iterator_to_array($call->responses()));
+        self::assertSame(GrpcStatusCode::OK, $call->statusCode());
+        self::assertSame('', $call->statusMessage());
+        self::assertSame(['content-type' => ['application/grpc']], $call->metadata());
+        self::assertSame(['grpc-status' => ['0']], $call->trailingMetadata());
+        self::assertSame('service.googleapis.com:443', $call->getPeer());
+
+        self::assertCount(1, Call::$instances);
+        self::assertSame('/service.v1.Service/List', Call::$instances[0]->method);
+        self::assertSame(2_500_000, Call::$instances[0]->deadline->microseconds);
+        self::assertSame(['request-header' => ['value']], Call::$instances[0]->batches[0][OP_SEND_INITIAL_METADATA]);
+        self::assertSame(['message' => 'request-payload'], Call::$instances[0]->batches[0][OP_SEND_MESSAGE]);
+        self::assertTrue(Call::$instances[0]->batches[0][OP_SEND_CLOSE_FROM_CLIENT]);
+        self::assertArrayHasKey(OP_RECV_INITIAL_METADATA, Call::$instances[0]->batches[1]);
+        self::assertArrayHasKey(OP_RECV_MESSAGE, Call::$instances[0]->batches[1]);
+        self::assertArrayHasKey(OP_RECV_STATUS_ON_CLIENT, Call::$instances[0]->batches[4]);
+
+        $call->cancel();
+        self::assertTrue(Call::$instances[0]->cancelled);
+    }
+
+    public function testReadsServerStreamingInitialMetadataLazily(): void
+    {
+        Call::$nextReceiveEvents = [
+            (object) [
+                'metadata' => [
+                    0 => ['ignored'],
+                    'single' => 'value',
+                    'bad-map' => ['nested' => 'value'],
+                    'bad-values' => [1],
+                    'empty' => [],
+                ],
+            ],
+        ];
+        $bridge = new GrpcLiteNativeBridge('service.googleapis.com:443');
+
+        $call = $bridge->serverStreamingCall('/service.v1.Service/List', '', [], null);
+
+        self::assertSame(['single' => ['value']], $call->metadata());
+        self::assertSame(PHP_INT_MAX, Call::$instances[0]->deadline->microseconds);
+    }
+
+    public function testRejectsServerStreamingNativeEventWithoutStatusCode(): void
+    {
+        Call::$nextReceiveEvent = (object) [
+            'status' => (object) [
+                'metadata' => 'not-metadata',
+            ],
+        ];
+        $bridge = new GrpcLiteNativeBridge('service.googleapis.com:443');
+        $call = $bridge->serverStreamingCall('/service.v1.Service/List', '', [], null);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('missing an integer gRPC status code');
+
+        $call->statusCode();
+    }
+
+    public function testNormalizesServerStreamingNonArrayTrailingMetadata(): void
+    {
+        Call::$nextReceiveEvent = (object) [
+            'status' => (object) [
+                'code' => 0,
+                'details' => '',
+                'metadata' => 'not-metadata',
+            ],
+        ];
+        $bridge = new GrpcLiteNativeBridge('service.googleapis.com:443');
+        $call = $bridge->serverStreamingCall('/service.v1.Service/List', '', [], null);
+
+        self::assertSame([], $call->trailingMetadata());
     }
 
     public function testRejectsNativeEventWithoutStatusCode(): void

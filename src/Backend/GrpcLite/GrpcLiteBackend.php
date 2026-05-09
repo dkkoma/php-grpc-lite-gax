@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace GrpcLiteGax\Backend\GrpcLite;
 
 use GrpcLiteGax\Backend\BackendClosedException;
+use GrpcLiteGax\Backend\ServerStreamingBackend;
+use GrpcLiteGax\Backend\ServerStreamingCall;
+use GrpcLiteGax\Backend\ServerStreamingRequest;
 use GrpcLiteGax\Backend\UnaryBackend;
 use GrpcLiteGax\Backend\UnaryRequest;
 use GrpcLiteGax\Backend\UnaryResponse;
@@ -12,13 +15,28 @@ use GrpcLiteGax\Backend\UnaryResponse;
 /**
  * @internal
  */
-final class GrpcLiteBackend implements UnaryBackend
+final class GrpcLiteBackend implements UnaryBackend, ServerStreamingBackend
 {
     private bool $closed = false;
 
     public function __construct(
         private readonly GrpcLiteBridge $bridge,
     ) {
+    }
+
+    #[\Override]
+    public function start(ServerStreamingRequest $request): ServerStreamingCall
+    {
+        if ($this->closed) {
+            throw new BackendClosedException();
+        }
+
+        return $this->bridge->serverStreamingCall(
+            path: $request->path(),
+            payload: $request->payload,
+            metadata: $request->metadata,
+            timeoutSeconds: $request->timeoutSeconds,
+        );
     }
 
     #[\Override]
