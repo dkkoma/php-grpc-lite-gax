@@ -193,8 +193,13 @@ container-reachable host such as `host.docker.internal:9010`.
 To run all smoke suites:
 
 ```sh
-PUBSUB_EMULATOR_HOST=php-grpc-lite-gax-pubsub-emulator:8085 \
+PUBSUB_EMULATOR_HOST=localhost:8085 \
 SPANNER_SMOKE_DOCKER_NETWORK=php-grpc-lite_default \
 SPANNER_EMULATOR_HOST=php-grpc-lite-spanner-emulator-1:9010 \
   composer verify:smoke
 ```
+
+`PUBSUB_EMULATOR_HOST` is read by the PHP process running Composer, so use a
+host-reachable address. `SPANNER_EMULATOR_HOST` is passed into Docker smoke
+containers by `tools/spanner-smoke.sh`, so use an address reachable on
+`SPANNER_SMOKE_DOCKER_NETWORK`.
