@@ -45,7 +45,7 @@ The FrankenPHP grpc-go path targets the `FrankenGrpc` PHP extension API from `/U
 
 ## Smoke Coverage
 
-`composer test:native-smoke` verifies the real `php-grpc-lite` extension surface. `composer test:franken-smoke` clones `https://github.com/dkkoma/frankenphp-grpc-go-client`, builds its FrankenPHP binary in Docker, runs PHPUnit through `frankenphp php-cli`, fails if the repository test stub is loaded, and verifies that `FrankenGrpcTransport::build()` can construct and close the bridge over the real extension. Unary and server-streaming RPC smoke coverage for FrankenPHP remains pending until a Franken test endpoint is available. Emulator smoke suites are fail-closed and require their host environment variables.
+`composer test:native-smoke` verifies the real `php-grpc-lite` extension surface. `composer test:franken-smoke` clones `https://github.com/dkkoma/frankenphp-grpc-go-client` at the verified default commit, builds its FrankenPHP binary in Docker, runs PHPUnit through `frankenphp php-cli`, fails if the repository test stub is loaded, and verifies that `FrankenGrpcTransport::build()` can construct and close the bridge over the real extension. Set `FRANKEN_GRPC_CLIENT_REF=main` or another ref to test a different upstream revision. Unary and server-streaming RPC smoke coverage for FrankenPHP remains pending until a Franken test endpoint is available. Emulator smoke suites are fail-closed and require their host environment variables.
 
 `composer test:pubsub-smoke` runs against a Pub/Sub emulator with `google/cloud-pubsub` generated clients, using this repository's `GrpcLiteTransport`. It creates a topic and subscription, publishes a message, pulls it, and acknowledges it.
 
