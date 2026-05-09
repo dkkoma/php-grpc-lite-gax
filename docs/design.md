@@ -2,7 +2,7 @@
 
 ## Goal
 
-This package provides a PHP Composer library that adapts `google/gax` `TransportInterface` calls to lightweight gRPC backends. The current supported call types are unary and server streaming. The first production backend path is `php-grpc-lite`; FrankenPHP grpc-go remains behind the same backend boundary.
+This package provides a PHP Composer library that adapts `google/gax` `TransportInterface` calls to lightweight gRPC backends. The current supported call types are unary and server streaming. The production backend paths are `php-grpc-lite` and FrankenPHP grpc-go.
 
 ## Layering
 
@@ -39,7 +39,9 @@ Server streaming calls send initial metadata, one request message, and close-fro
 
 ## FrankenPHP Extension
 
-The FrankenPHP grpc-go path is intentionally specified before implementation. `docs/frankenphp-extension-api.md` defines the byte-level PHP extension API expected from a separate extension repository, including unary, server streaming, metadata, deadline, status, cancellation, and lifecycle requirements.
+The FrankenPHP grpc-go path targets the `FrankenGrpc` PHP extension API from `/Users/daisuke/src/frankenphp-grpc-go-client`. `FrankenGrpcNativeBridge` adapts `FrankenGrpc\Channel`, `UnaryCall`, `ServerStreamingCall`, `UnaryResult`, and `Status` to the repository backend contracts. Unary responses map initial metadata and trailing metadata separately. Server streaming exposes the native read loop as `ServerStreamingCall::responses()`, maps final status to `GrpcStatusCode`, and falls back to `Status::$metadata` when native trailing metadata is empty.
+
+`docs/frankenphp-extension-api.md` remains the cross-repository contract for the byte-level extension API, including unary, server streaming, metadata, deadline, status, cancellation, and lifecycle requirements.
 
 ## Smoke Coverage
 
@@ -51,4 +53,4 @@ The FrankenPHP grpc-go path is intentionally specified before implementation. `d
 
 ## Current Scope
 
-The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, `AbstractGrpcTransport`, `GrpcLiteTransport`, unary and server-streaming backend contracts, `FakeBackend`, `FrankenGrpcBackend`, `GrpcLiteBackend`, contract tests, native smoke tests, Pub/Sub emulator smoke tests, and Spanner emulator smoke tests.
+The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, `AbstractGrpcTransport`, `GrpcLiteTransport`, unary and server-streaming backend contracts, `FakeBackend`, `FrankenGrpcBackend`, `FrankenGrpcNativeBridge`, `GrpcLiteBackend`, contract tests, native smoke tests, Pub/Sub emulator smoke tests, and Spanner emulator smoke tests.
