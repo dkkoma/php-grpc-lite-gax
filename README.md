@@ -8,11 +8,42 @@ implementations for lightweight gRPC runtimes:
 
 The transports support unary and server-streaming calls. They are intended for
 generated google-cloud-php GAPIC clients that accept a `transport` option.
+With the bundled GAX patch applied, applications can select the runtime with a
+`transportFactory` option while google-cloud-php keeps ownership of default
+endpoints and emulator environment variables.
 
 ## Installation
 
 ```sh
 composer require dkkoma/php-grpc-lite-gax google/gax
+```
+
+This package can run against `google/gax` `^1.42.3` through the low-level
+`GrpcLiteTransport::build()` and `FrankenGrpcTransport::build()` APIs. The
+recommended `transportFactory` integration is patch-verified against
+`google/gax` 1.42.3. In an application root that wants the factory integration,
+pin that GAX version, install a Composer patch plugin, and add this patch
+configuration:
+
+```json
+{
+  "require": {
+    "google/gax": "1.42.3",
+    "cweagans/composer-patches": "^2.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "cweagans/composer-patches": true
+    }
+  },
+  "extra": {
+    "patches": {
+      "google/gax": {
+        "Add transportFactory option for custom TransportInterface construction": "vendor/dkkoma/php-grpc-lite-gax/patches/google-gax-transport-factory.patch"
+      }
+    }
+  }
+}
 ```
 
 For the grpc-lite backend, install and load the runtime provider:
@@ -34,57 +65,46 @@ and an archive extractor such as PHP `zip`, `unzip`, or `7z`.
 For the FrankenPHP backend, run PHP through a FrankenPHP binary that includes
 the `FrankenGrpc` extension from `dkkoma/frankenphp-grpc-go-client`.
 
-## Choosing a Transport
+## Choosing a Runtime
 
 ```php
-use GrpcLiteGax\Transport\FrankenGrpcTransport;
-use GrpcLiteGax\Transport\GrpcLiteTransport;
-use Grpc\ChannelCredentials;
+use GrpcLiteGax\GaxTransportFactory;
 
-$endpoint = 'spanner.googleapis.com:443';
-
-$grpcLite = GrpcLiteTransport::build($endpoint, [
-    'credentials' => ChannelCredentials::createSsl(),
-]);
-
-$franken = FrankenGrpcTransport::build($endpoint);
+$factory = GaxTransportFactory::forBackend(
+    getenv('GOOGLE_CLOUD_GRPC_BACKEND') ?: GaxTransportFactory::BACKEND_GRPC_LITE,
+);
 ```
 
-For local emulators, use plaintext/insecure transport:
+Supported backend values are:
 
-```php
-$endpoint = getenv('SPANNER_EMULATOR_HOST') ?: 'localhost:9010';
+- `default`: do not change GAX transport construction.
+- `grpc-lite`: build `GrpcLiteTransport` from the endpoint resolved by GAX.
+- `frankenphp-grpc-go`: build `FrankenGrpcTransport` from the endpoint resolved by GAX.
 
-$grpcLite = GrpcLiteTransport::build($endpoint, [
-    'credentials' => ChannelCredentials::createInsecure(),
-]);
-
-$franken = FrankenGrpcTransport::build($endpoint, ['plaintext' => true]);
-```
+Do not configure normal Google Cloud endpoints in this package. GAX and
+google-cloud-php continue to resolve defaults such as `spanner.googleapis.com:443`
+and emulator variables such as `SPANNER_EMULATOR_HOST` and `PUBSUB_EMULATOR_HOST`.
+The patched callable signature is
+`function (string $transport, string $apiEndpoint, array $transportConfig, array $context): TransportInterface`;
+`GaxTransportFactory` supplies that callable for this package's supported
+backends.
 
 ## google-cloud-php Generated Clients
 
-Generated clients accept a `TransportInterface` object through the `transport`
-option. This example uses the generated Spanner GAPIC client from
-`google/cloud-spanner`.
+Generated clients accept the patched `transportFactory` option. This example
+uses the generated Spanner GAPIC client from `google/cloud-spanner`. For
+emulator usage, set `SPANNER_EMULATOR_HOST`; do not duplicate it in code.
 
 ```php
-use Google\ApiCore\InsecureCredentialsWrapper;
 use Google\Cloud\Spanner\V1\Client\SpannerClient;
 use Google\Cloud\Spanner\V1\CreateSessionRequest;
-use Grpc\ChannelCredentials;
-use GrpcLiteGax\Transport\GrpcLiteTransport;
+use GrpcLiteGax\GaxTransportFactory;
 
-$endpoint = getenv('SPANNER_EMULATOR_HOST') ?: 'localhost:9010';
 $database = 'projects/test-project/instances/test-instance/databases/test-db';
 
 $spanner = new SpannerClient([
-    'apiEndpoint' => $endpoint,
-    'credentials' => new InsecureCredentialsWrapper(),
-    'transport' => GrpcLiteTransport::build($endpoint, [
-        'credentials' => ChannelCredentials::createInsecure(),
-    ]),
-    'disableRetries' => true,
+    'transport' => 'grpc',
+    'transportFactory' => GaxTransportFactory::forBackend('grpc-lite'),
 ]);
 
 $session = $spanner->createSession(
@@ -92,16 +112,12 @@ $session = $spanner->createSession(
 );
 ```
 
-Switching to FrankenPHP only changes the transport:
+Switching to FrankenPHP only changes the backend selection:
 
 ```php
-use GrpcLiteGax\Transport\FrankenGrpcTransport;
-
 $spanner = new SpannerClient([
-    'apiEndpoint' => $endpoint,
-    'credentials' => new InsecureCredentialsWrapper(),
-    'transport' => FrankenGrpcTransport::build($endpoint, ['plaintext' => true]),
-    'disableRetries' => true,
+    'transport' => 'grpc',
+    'transportFactory' => GaxTransportFactory::forBackend('frankenphp-grpc-go'),
 ]);
 ```
 
@@ -112,19 +128,18 @@ extension.
 
 ## Laravel Example
 
-Bind the transport and generated client in a service provider. The same pattern
-works for other generated google-cloud-php clients.
+Expose backend selection in configuration and pass the factory into each
+google-cloud-php client you create. Do not bind one global `TransportInterface`;
+the factory lets GAX resolve the correct endpoint per client.
 
 ```php
 <?php
 
 namespace App\Providers;
 
-use Google\ApiCore\InsecureCredentialsWrapper;
 use Google\Cloud\Spanner\V1\Client\SpannerClient;
-use Grpc\ChannelCredentials;
-use GrpcLiteGax\Transport\FrankenGrpcTransport;
-use GrpcLiteGax\Transport\GrpcLiteTransport;
+use Google\Cloud\PubSub\PubSubClient;
+use GrpcLiteGax\GaxTransportFactory;
 use Illuminate\Support\ServiceProvider;
 
 final class GoogleCloudServiceProvider extends ServiceProvider
@@ -132,51 +147,46 @@ final class GoogleCloudServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(SpannerClient::class, function (): SpannerClient {
-            $endpoint = config('services.spanner.endpoint', 'spanner.googleapis.com:443');
-            $backend = config('services.spanner.grpc_backend', 'grpc-lite');
-            $emulator = (bool) config('services.spanner.emulator', false);
+            return new SpannerClient([
+                'transport' => 'grpc',
+                'transportFactory' => GaxTransportFactory::forBackend(
+                    config('google_cloud.grpc_backend', GaxTransportFactory::BACKEND_GRPC_LITE),
+                ),
+            ]);
+        });
 
-            $transport = $backend === 'franken'
-                ? FrankenGrpcTransport::build($endpoint, $emulator ? ['plaintext' => true] : [])
-                : GrpcLiteTransport::build($endpoint, [
-                    'credentials' => $emulator
-                        ? ChannelCredentials::createInsecure()
-                        : ChannelCredentials::createSsl(),
-                ]);
-
-            $options = [
-                'apiEndpoint' => $endpoint,
-                'transport' => $transport,
-            ];
-
-            if ($emulator) {
-                $options['credentials'] = new InsecureCredentialsWrapper();
-            }
-
-            return new SpannerClient($options);
+        $this->app->singleton(PubSubClient::class, function (): PubSubClient {
+            return new PubSubClient([
+                'transport' => 'grpc',
+                'transportFactory' => GaxTransportFactory::forBackend(
+                    config('google_cloud.grpc_backend', GaxTransportFactory::BACKEND_GRPC_LITE),
+                ),
+            ]);
         });
     }
 }
 ```
 
-Example `config/services.php` entries:
+Example `config/google_cloud.php` entry:
 
 ```php
-'spanner' => [
-    'endpoint' => env('SPANNER_EMULATOR_HOST', 'spanner.googleapis.com:443'),
-    'emulator' => env('SPANNER_EMULATOR', false),
+return [
     'grpc_backend' => env('GOOGLE_CLOUD_GRPC_BACKEND', 'grpc-lite'),
-],
+];
 ```
 
-Use the generated client through dependency injection:
+Use the clients through dependency injection:
 
 ```php
 use Google\Cloud\Spanner\V1\Client\SpannerClient;
+use Google\Cloud\PubSub\PubSubClient;
 
 final class ListSessions
 {
-    public function __construct(private SpannerClient $spanner)
+    public function __construct(
+        private SpannerClient $spanner,
+        private PubSubClient $pubsub,
+    )
     {
     }
 }

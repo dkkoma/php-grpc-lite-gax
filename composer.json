@@ -5,7 +5,7 @@
   "license": "MIT",
   "require": {
     "php": "^8.4",
-    "google/gax": "^1.42"
+    "google/gax": "^1.42.3"
   },
   "require-dev": {
     "google/cloud-spanner": "^2.7",
@@ -15,7 +15,15 @@
     "google/cloud-pubsub": "^2.19"
   },
   "suggest": {
+    "cweagans/composer-patches": "Apply patches/google-gax-transport-factory.patch in applications that use transportFactory.",
     "dkkoma/php-grpc-lite": "Install the PIE php-grpc-lite grpc extension for GrpcLiteTransport::build()."
+  },
+  "extra": {
+    "patches": {
+      "google/gax": {
+        "Add transportFactory option for custom TransportInterface construction": "patches/google-gax-transport-factory.patch"
+      }
+    }
   },
   "autoload": {
     "psr-4": {
