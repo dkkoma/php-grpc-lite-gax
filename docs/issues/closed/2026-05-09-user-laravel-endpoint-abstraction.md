@@ -1,6 +1,6 @@
 # Laravel Endpoint Abstraction Feels Too Low-Level
 
-State: open
+State: closed
 Source: user instruction
 
 ## Context
@@ -34,6 +34,10 @@ configuration for custom/private endpoints.
 
 ## Fix Summary
 
+Replaced the endpoint-oriented Laravel README example with patched GAX
+`transportFactory` usage. Applications select `default`, `grpc-lite`, or
+`frankenphp-grpc-go`; google-cloud-php/GAX keeps default endpoint and emulator
+resolution.
 
 ## Verification
 
@@ -41,3 +45,4 @@ Read `vendor/google/cloud-spanner/src/V1/Client/SpannerClient.php`,
 `vendor/google/cloud-spanner/src/SpannerClient.php`, and
 `vendor/google/gax/src/GapicClientTrait.php` to confirm emulator and
 preconstructed transport behavior.
+Verified with `composer test`, `composer lint`, and `composer validate-project`.

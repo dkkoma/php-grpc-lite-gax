@@ -1,6 +1,6 @@
 # Google Cloud Endpoint Profiles
 
-State: open
+State: closed
 Source: user instruction
 
 ## Context
@@ -19,15 +19,17 @@ conventions such as `SPANNER_EMULATOR_HOST` and `PUBSUB_EMULATOR_HOST`.
 
 ## Proposed Fix
 
-Design a small service profile layer that maps supported Google Cloud services
-to their default endpoint and emulator environment variable. Use it from
-user-facing helpers that build GAPIC client options with this repository's
-transport. Keep raw `GrpcLiteTransport::build($endpoint)` and
-`FrankenGrpcTransport::build($endpoint)` as low-level APIs.
+Do not add a service profile layer. Keep Google Cloud API endpoint and emulator
+knowledge in upstream google-cloud-php/GAX. Use the patched GAX
+`transportFactory` option so this repository only chooses the transport runtime.
 
 ## Fix Summary
 
+Closed without implementing a service endpoint registry. Added
+`patches/google-gax-transport-factory.patch`, `GaxTransportFactory`, README
+usage, and design documentation for backend-only runtime selection.
 
 ## Verification
 
-Not run; issue capture only.
+`composer test`, `composer lint`, `composer validate-project`, and patch
+dry-runs against `google/gax` 1.42.3.

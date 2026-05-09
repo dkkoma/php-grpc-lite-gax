@@ -1,6 +1,6 @@
 # Laravel Multiple Google Cloud Clients
 
-State: open
+State: closed
 Source: user instruction
 
 ## Context
@@ -19,17 +19,19 @@ runtime such as grpc-lite or FrankenPHP.
 
 ## Proposed Fix
 
-Document and design Laravel integration around per-service client bindings:
-bind Spanner clients with Spanner endpoint/emulator rules and Pub/Sub clients
-with Pub/Sub endpoint/emulator rules. Share only backend selection and common
-runtime defaults globally. Avoid a single app-wide `TransportInterface` binding
-unless it is scoped to one endpoint.
+Document Laravel integration around backend selection plus patched GAX
+`transportFactory`, not a global `TransportInterface` binding and not a service
+endpoint registry. Each google-cloud-php client keeps its own endpoint/emulator
+resolution.
 
 ## Fix Summary
 
+Updated README Laravel guidance to pass `transportFactory` into Spanner and
+Pub/Sub clients while sharing only `GOOGLE_CLOUD_GRPC_BACKEND`.
 
 ## Verification
 
 Read `vendor/google/cloud-pubsub/src/PubSubClient.php` to confirm Pub/Sub
 handwritten client dispatches to `PublisherClient`, `SubscriberClient`, and
 `SchemaServiceClient`, and uses `PUBSUB_EMULATOR_HOST`.
+Verified README examples by static checks through `composer lint`.

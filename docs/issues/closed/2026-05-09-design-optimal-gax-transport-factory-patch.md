@@ -1,6 +1,6 @@
 # Optimal GAX Transport Factory Patch
 
-State: open
+State: closed
 Source: user instruction
 
 ## Context
@@ -25,7 +25,12 @@ GAX would otherwise call `GrpcTransport::build()`, `RestTransport::build()`, or
 
 ## Fix Summary
 
+Added `patches/google-gax-transport-factory.patch` for `google/gax` 1.42.3.
+The patch adds `transportFactory` to client options and invokes it from
+`GapicClientTrait::createTransport()` after transport-specific config has been
+resolved. The factory must return `TransportInterface`.
 
 ## Verification
 
-Not run; issue capture only.
+`composer test`, `composer lint`, `composer validate-project`, and patch
+dry-runs against `google/gax` 1.42.3.

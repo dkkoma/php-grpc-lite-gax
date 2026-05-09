@@ -1,6 +1,6 @@
 # Reuse Client Default Endpoint Before Transport Injection
 
-State: open
+State: closed
 Source: design decision
 
 ## Context
@@ -19,15 +19,16 @@ Google Cloud usage becomes lower-level than the official clients.
 
 ## Proposed Fix
 
-Investigate a pre-transport options helper that accepts a generated client class
-name or client options array, lets the upstream client default/emulator logic
-determine `apiEndpoint` where possible, then constructs this repository's
-transport from that resolved endpoint. Do not try to derive endpoints inside
-`TransportInterface` call methods because GAX `Call` objects do not carry
-endpoint information.
+Use a GAX patch instead of a pre-transport options helper. The patch adds a
+`transportFactory` hook at the GAX transport construction boundary, after
+google-cloud-php/GAX has resolved `apiEndpoint` and transport config.
 
 ## Fix Summary
 
+Implemented `patches/google-gax-transport-factory.patch` and
+`GaxTransportFactory`. The factory receives the resolved endpoint from patched
+GAX and builds `GrpcLiteTransport` or `FrankenGrpcTransport`; `default` returns
+`null` to keep GAX behavior unchanged.
 
 ## Verification
 
@@ -35,3 +36,5 @@ Read `vendor/google/gax/src/Transport/TransportInterface.php`,
 `vendor/google/gax/src/GapicClientTrait.php`, and
 `vendor/google/gax/src/Options/ClientOptions.php` to confirm endpoint is used
 before transport construction and is not passed through `Call` options.
+Verified with `GaxTransportFactoryPatchTest`, `composer test`, `composer lint`,
+`composer validate-project`, and patch dry-runs against `google/gax` 1.42.3.
