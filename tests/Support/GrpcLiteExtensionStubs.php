@@ -16,20 +16,13 @@ namespace Grpc {
 
         final class ChannelCredentials
         {
-            public function __construct(
-                public readonly string $type,
-                public readonly ?string $pemRootCerts = null,
-                public readonly ?string $privateKey = null,
-                public readonly ?string $certChain = null,
-            ) {
+            public function __construct(public readonly string $type)
+            {
             }
 
-            public static function createSsl(
-                ?string $pemRootCerts = null,
-                ?string $privateKey = null,
-                ?string $certChain = null,
-            ): self {
-                return new self('ssl', $pemRootCerts, $privateKey, $certChain);
+            public static function createSsl(): self
+            {
+                return new self('ssl');
             }
 
             public static function createInsecure(): self

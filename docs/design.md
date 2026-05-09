@@ -9,21 +9,13 @@ This package provides a PHP Composer library that adapts `google/gax` `Transport
 The dependency direction is:
 
 ```text
-Patched GAX transportFactory
-  -> Google\ApiCore\Transport\TransportInterface
+Google\ApiCore\Transport\TransportInterface
   -> AbstractGrpcTransport
   -> UnaryBackend / ServerStreamingBackend
   -> concrete backend
 ```
 
-`GaxTransportFactory` is the preferred user-facing entry point when the
-`google/gax` transport factory patch is applied. It lets users choose
-`grpc-lite`, `frankenphp-grpc-go`, or `default` without this repository carrying
-Google Cloud service endpoint knowledge. GAX and google-cloud-php remain
-responsible for default endpoints, emulator environment variables, universe
-domain, mTLS, credentials, retry config, and generated client defaults.
-
-`AbstractGrpcTransport` owns the GAX-facing runtime contract. It converts GAX `Call` objects and call options into backend value objects, adds GAX header credentials as request metadata, delegates to the backend, and maps backend responses back to GAX promises or `ServerStream` objects. Backend implementations must not depend on GAX client internals.
+`AbstractGrpcTransport` owns the GAX-facing contract. It converts GAX `Call` objects and call options into backend value objects, adds GAX header credentials as request metadata, delegates to the backend, and maps backend responses back to GAX promises or `ServerStream` objects. Backend implementations must not depend on GAX client internals.
 
 ## Backend Model
 
@@ -43,15 +35,11 @@ Unary calls send initial metadata, one request message, and close-from-client in
 
 Server streaming calls send initial metadata, one request message, and close-from-client, then receive initial metadata plus messages until the native call returns no message. Initial metadata is cached so direct metadata access cannot desynchronize later response iteration. Final status is read separately with `OP_RECV_STATUS_ON_CLIENT`. Unknown integer status values map to `GrpcStatusCode::UNKNOWN`; malformed native status is a backend failure and is mapped by `AbstractGrpcTransport` to `UNAVAILABLE`.
 
-`GrpcLiteTransport::build()` is the low-level construction path. Runtime users
-provide an endpoint and optional channel options directly only when they do not
-use the patched GAX `transportFactory` option. The Dev Container builds
-`dkkoma/php-grpc-lite` as `grpc.so` but does not load it by default, so unit
-tests use stubs. Native and emulator smoke scripts explicitly load `grpc.so`.
+`GrpcLiteTransport::build()` is the user-facing construction path. Runtime users provide an endpoint and optional channel options. The Dev Container builds `dkkoma/php-grpc-lite` as `grpc.so` but does not load it by default, so unit tests use stubs. Native and emulator smoke scripts explicitly load `grpc.so`.
 
 ## FrankenPHP Extension
 
-The FrankenPHP grpc-go path targets the `FrankenGrpc` PHP extension API from `/Users/daisuke/src/frankenphp-grpc-go-client`. `FrankenGrpcTransport::build()` is the low-level construction path. `FrankenGrpcNativeBridge` adapts `FrankenGrpc\Channel`, `UnaryCall`, `ServerStreamingCall`, `UnaryResult`, and `Status` to the repository backend contracts. Unary responses map initial metadata and trailing metadata separately. Server streaming exposes the native read loop as `ServerStreamingCall::responses()`, maps final status to `GrpcStatusCode`, and falls back to `Status::$metadata` when native trailing metadata is empty.
+The FrankenPHP grpc-go path targets the `FrankenGrpc` PHP extension API from `/Users/daisuke/src/frankenphp-grpc-go-client`. `FrankenGrpcTransport::build()` is the user-facing construction path. `FrankenGrpcNativeBridge` adapts `FrankenGrpc\Channel`, `UnaryCall`, `ServerStreamingCall`, `UnaryResult`, and `Status` to the repository backend contracts. Unary responses map initial metadata and trailing metadata separately. Server streaming exposes the native read loop as `ServerStreamingCall::responses()`, maps final status to `GrpcStatusCode`, and falls back to `Status::$metadata` when native trailing metadata is empty.
 
 `docs/frankenphp-extension-api.md` remains the cross-repository contract for the byte-level extension API, including unary, server streaming, metadata, deadline, status, cancellation, and lifecycle requirements.
 
@@ -63,19 +51,6 @@ The FrankenPHP grpc-go path targets the `FrankenGrpc` PHP extension API from `/U
 
 `composer test:spanner-smoke` runs against a Spanner emulator with `google/cloud-spanner` generated clients, first through `GrpcLiteTransport` in the PHP dev image and then through `FrankenGrpcTransport` in the built FrankenPHP binary. Both test cases create an instance and database, execute DML in a read-write transaction, commit, and verify `ExecuteStreamingSql` with a streaming `SELECT`.
 
-## GAX Patch
-
-`patches/google-gax-transport-factory.patch` targets `google/gax` 1.42.3. It
-adds an optional `transportFactory` client option at the existing GAX transport
-construction boundary. The callable receives the selected transport name, the
-resolved API endpoint, the transport-specific config, and context such as
-`clientCertSource`, `hasEmulator`, and `hasInsecureCredentials`. It must return
-a `TransportInterface`.
-
-This repository does not maintain a Google Cloud service endpoint registry.
-Applications that want no transport change pass `default`, which leaves GAX's
-normal transport construction untouched.
-
 ## Current Scope
 
-The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, the GAX transport factory patch, `GaxTransportFactory`, `AbstractGrpcTransport`, `GrpcLiteTransport`, unary and server-streaming backend contracts, `FakeBackend`, `FrankenGrpcBackend`, `FrankenGrpcNativeBridge`, `GrpcLiteBackend`, contract tests, native smoke tests, Pub/Sub emulator smoke tests, grpc-lite Spanner emulator smoke tests, and FrankenPHP Spanner emulator smoke tests.
+The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, `AbstractGrpcTransport`, `GrpcLiteTransport`, unary and server-streaming backend contracts, `FakeBackend`, `FrankenGrpcBackend`, `FrankenGrpcNativeBridge`, `GrpcLiteBackend`, contract tests, native smoke tests, Pub/Sub emulator smoke tests, grpc-lite Spanner emulator smoke tests, and FrankenPHP Spanner emulator smoke tests.
