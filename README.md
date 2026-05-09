@@ -9,6 +9,12 @@ implementations for lightweight gRPC runtimes:
 The transports support unary and server-streaming calls. They are intended for
 generated google-cloud-php GAPIC clients that accept a `transport` option.
 
+This repository is an experiment around the GAX `TransportInterface` boundary.
+The adapter path works, but the GAX patch approach was archived as too heavy
+for normal application operation. See
+[`docs/transport-interface-experiment.md`](docs/transport-interface-experiment.md)
+for the conclusion and recommended next direction.
+
 ## Installation
 
 ```sh
