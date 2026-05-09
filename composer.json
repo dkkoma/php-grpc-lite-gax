@@ -15,7 +15,7 @@
     "google/cloud-pubsub": "^2.19"
   },
   "suggest": {
-    "dkkoma/php-grpc-lite": "Install the php-grpc-lite source-built grpc extension for GrpcLiteTransport::build()."
+    "dkkoma/php-grpc-lite": "Install the PIE php-grpc-lite grpc extension for GrpcLiteTransport::build()."
   },
   "autoload": {
     "psr-4": {
