@@ -8,6 +8,7 @@ use Google\ApiCore\ApiException;
 use Google\ApiCore\Call;
 use Google\ApiCore\ValidationException;
 use Google\Protobuf\StringValue;
+use Google\Rpc\Status;
 use GrpcLiteGax\Backend\GrpcStatusCode;
 use GrpcLiteGax\Backend\ServerStreamingBackend;
 use GrpcLiteGax\Backend\ServerStreamingCall;
@@ -155,6 +156,30 @@ final class AbstractGrpcTransportTest extends TestCase
         /** @var iterable<int, StringValue> $streamResponses */
         $streamResponses = $stream->readAll();
         iterator_to_array($streamResponses);
+    }
+
+    public function testServerStreamingCallPreservesTrailingMetadataOnApiException(): void
+    {
+        $backend = new FakeBackend();
+        $statusDetails = (new Status(['code' => GrpcStatusCode::FAILED_PRECONDITION->value]))->serializeToString();
+        $backend->enqueueServerStreamingCall(new FakeServerStreamingCall(
+            responses: [],
+            statusCode: GrpcStatusCode::FAILED_PRECONDITION,
+            statusMessage: 'precondition failed',
+            trailingMetadata: ['grpc-status-details-bin' => [$statusDetails]],
+        ));
+        $transport = new TestGrpcTransport($backend);
+        $stream = $transport->startServerStreamingCall(GaxUnaryCallFixture::serverStreamingCall(), []);
+
+        try {
+            /** @var iterable<int, StringValue> $streamResponses */
+            $streamResponses = $stream->readAll();
+            iterator_to_array($streamResponses);
+            self::fail('Expected ApiException.');
+        } catch (ApiException $exception) {
+            self::assertSame(GrpcStatusCode::FAILED_PRECONDITION->value, $exception->getCode());
+            self::assertSame(['grpc-status-details-bin' => [$statusDetails]], $exception->getMetadata());
+        }
     }
 
     public function testServerStreamingCallMapsNonOkFinalStatusAfterResponsesToApiException(): void
