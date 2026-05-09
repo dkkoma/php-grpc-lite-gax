@@ -11,6 +11,10 @@
         </testsuite>
         <testsuite name="native-smoke">
             <directory>tests/Integration</directory>
+            <exclude>tests/Integration/Spanner</exclude>
+        </testsuite>
+        <testsuite name="spanner-smoke">
+            <directory>tests/Integration/Spanner</directory>
         </testsuite>
     </testsuites>
     <source>
