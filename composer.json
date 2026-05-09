@@ -39,7 +39,7 @@
       "phpcs"
     ],
     "test": "phpunit --testsuite unit",
-    "test:franken-smoke": "phpunit --testsuite franken-smoke",
+    "test:franken-smoke": "tools/franken-smoke.sh",
     "test:native-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite native-smoke",
     "test:pubsub-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite pubsub-smoke",
     "test:spanner-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite spanner-smoke",
@@ -52,6 +52,7 @@
       "@test:native-smoke"
     ],
     "verify:smoke": [
+      "@test:franken-smoke",
       "@test:native-smoke",
       "@test:pubsub-smoke",
       "@test:spanner-smoke"
