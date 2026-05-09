@@ -178,8 +178,23 @@ final class ListSessions
 ```sh
 composer verify
 composer test:franken-smoke
-SPANNER_EMULATOR_HOST=localhost:9010 composer test:spanner-smoke
+SPANNER_SMOKE_DOCKER_NETWORK=php-grpc-lite_default \
+SPANNER_EMULATOR_HOST=php-grpc-lite-spanner-emulator-1:9010 \
+  composer test:spanner-smoke
 ```
 
 `composer test:spanner-smoke` runs the Spanner emulator scenario twice: once
 with `GrpcLiteTransport` and once with `FrankenGrpcTransport`.
+
+When the emulator is published on the host instead of attached to the Docker
+network used by the smoke containers, set `SPANNER_EMULATOR_HOST` to a
+container-reachable host such as `host.docker.internal:9010`.
+
+To run all smoke suites:
+
+```sh
+PUBSUB_EMULATOR_HOST=php-grpc-lite-gax-pubsub-emulator:8085 \
+SPANNER_SMOKE_DOCKER_NETWORK=php-grpc-lite_default \
+SPANNER_EMULATOR_HOST=php-grpc-lite-spanner-emulator-1:9010 \
+  composer verify:smoke
+```
