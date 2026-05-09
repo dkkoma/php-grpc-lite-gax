@@ -77,7 +77,11 @@ final class BackendServerStreamingCall implements ServerStreamingCallInterface
     #[\Override]
     public function getMetadata(): array
     {
-        return $this->call->metadata();
+        try {
+            return $this->call->metadata();
+        } catch (\Throwable $exception) {
+            throw $this->backendFailure($exception);
+        }
     }
 
     /**
@@ -86,19 +90,31 @@ final class BackendServerStreamingCall implements ServerStreamingCallInterface
     #[\Override]
     public function getTrailingMetadata(): array
     {
-        return $this->call->trailingMetadata();
+        try {
+            return $this->call->trailingMetadata();
+        } catch (\Throwable $exception) {
+            throw $this->backendFailure($exception);
+        }
     }
 
     #[\Override]
     public function getPeer(): string
     {
-        return $this->call->getPeer();
+        try {
+            return $this->call->getPeer();
+        } catch (\Throwable $exception) {
+            throw $this->backendFailure($exception);
+        }
     }
 
     #[\Override]
     public function cancel(): void
     {
-        $this->call->cancel();
+        try {
+            $this->call->cancel();
+        } catch (\Throwable $exception) {
+            throw $this->backendFailure($exception);
+        }
     }
 
     /**

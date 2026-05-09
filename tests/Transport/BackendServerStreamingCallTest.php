@@ -219,8 +219,95 @@ final class BackendServerStreamingCallTest extends TestCase
         self::assertSame([], $status->metadata);
     }
 
+    public function testMapsBackendMetadataFailureToApiException(): void
+    {
+        $call = new BackendServerStreamingCall($this->directAccessorFailingCall(), StringValue::class);
+
+        $this->expectException(\Google\ApiCore\ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        $call->getMetadata();
+    }
+
+    public function testMapsBackendTrailingMetadataFailureToApiException(): void
+    {
+        $call = new BackendServerStreamingCall($this->directAccessorFailingCall(), StringValue::class);
+
+        $this->expectException(\Google\ApiCore\ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        $call->getTrailingMetadata();
+    }
+
+    public function testMapsBackendPeerFailureToApiException(): void
+    {
+        $call = new BackendServerStreamingCall($this->directAccessorFailingCall(), StringValue::class);
+
+        $this->expectException(\Google\ApiCore\ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        $call->getPeer();
+    }
+
+    public function testMapsBackendCancelFailureToApiException(): void
+    {
+        $call = new BackendServerStreamingCall($this->directAccessorFailingCall(), StringValue::class);
+
+        $this->expectException(\Google\ApiCore\ApiException::class);
+        $this->expectExceptionCode(GrpcStatusCode::UNAVAILABLE->value);
+
+        $call->cancel();
+    }
+
     private function stringPayload(string $value): string
     {
         return (new StringValue(['value' => $value]))->serializeToString();
+    }
+
+    private function directAccessorFailingCall(): ServerStreamingCall
+    {
+        return new class implements ServerStreamingCall {
+            #[\Override]
+            public function responses(): iterable
+            {
+                return [];
+            }
+
+            #[\Override]
+            public function statusCode(): GrpcStatusCode
+            {
+                return GrpcStatusCode::OK;
+            }
+
+            #[\Override]
+            public function statusMessage(): string
+            {
+                return '';
+            }
+
+            #[\Override]
+            public function metadata(): array
+            {
+                throw new \RuntimeException('metadata failure');
+            }
+
+            #[\Override]
+            public function trailingMetadata(): array
+            {
+                throw new \RuntimeException('trailing metadata failure');
+            }
+
+            #[\Override]
+            public function getPeer(): string
+            {
+                throw new \RuntimeException('peer failure');
+            }
+
+            #[\Override]
+            public function cancel(): void
+            {
+                throw new \RuntimeException('cancel failure');
+            }
+        };
     }
 }
