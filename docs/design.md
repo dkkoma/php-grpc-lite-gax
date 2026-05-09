@@ -37,6 +37,10 @@ Server streaming calls send initial metadata, one request message, and close-fro
 
 `GrpcLiteTransport::build()` is the user-facing construction path. Runtime users provide an endpoint and optional channel options. The Dev Container builds `dkkoma/php-grpc-lite` as `grpc.so` but does not load it by default, so unit tests use stubs. Native and emulator smoke scripts explicitly load `grpc.so`.
 
+## FrankenPHP Extension
+
+The FrankenPHP grpc-go path is intentionally specified before implementation. `docs/frankenphp-extension-api.md` defines the byte-level PHP extension API expected from a separate extension repository, including unary, server streaming, metadata, deadline, status, cancellation, and lifecycle requirements.
+
 ## Smoke Coverage
 
 `composer test:native-smoke` verifies the real `php-grpc-lite` extension surface. Emulator smoke suites are fail-closed and require their host environment variables.
