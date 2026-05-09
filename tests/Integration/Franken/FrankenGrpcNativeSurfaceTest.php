@@ -9,6 +9,7 @@ use FrankenGrpc\ServerStreamingCall;
 use FrankenGrpc\Status;
 use FrankenGrpc\UnaryCall;
 use FrankenGrpc\UnaryResult;
+use GrpcLiteGax\Transport\FrankenGrpcTransport;
 use PHPUnit\Framework\TestCase;
 
 final class FrankenGrpcNativeSurfaceTest extends TestCase
@@ -24,5 +25,10 @@ final class FrankenGrpcNativeSurfaceTest extends TestCase
         self::assertTrue(class_exists(ServerStreamingCall::class));
         self::assertTrue(class_exists(UnaryResult::class));
         self::assertTrue(class_exists(Status::class));
+
+        $transport = FrankenGrpcTransport::build('localhost:1');
+        $transport->close();
+
+        self::assertInstanceOf(FrankenGrpcTransport::class, $transport);
     }
 }
