@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace GrpcLiteGax\Backend\Franken;
 
 use GrpcLiteGax\Backend\BackendClosedException;
+use GrpcLiteGax\Backend\ServerStreamingBackend;
+use GrpcLiteGax\Backend\ServerStreamingCall;
+use GrpcLiteGax\Backend\ServerStreamingRequest;
 use GrpcLiteGax\Backend\UnaryBackend;
 use GrpcLiteGax\Backend\UnaryRequest;
 use GrpcLiteGax\Backend\UnaryResponse;
@@ -12,7 +15,7 @@ use GrpcLiteGax\Backend\UnaryResponse;
 /**
  * @internal
  */
-final class FrankenGrpcBackend implements UnaryBackend
+final class FrankenGrpcBackend implements UnaryBackend, ServerStreamingBackend
 {
     private bool $closed = false;
 
@@ -40,6 +43,22 @@ final class FrankenGrpcBackend implements UnaryBackend
             grpcStatusCode: $response->statusCode,
             statusMessage: $response->statusMessage,
             metadata: $response->metadata,
+            trailingMetadata: $response->trailingMetadata,
+        );
+    }
+
+    #[\Override]
+    public function start(ServerStreamingRequest $request): ServerStreamingCall
+    {
+        if ($this->closed) {
+            throw new BackendClosedException();
+        }
+
+        return $this->bridge->serverStreamingCall(
+            path: $request->path(),
+            payload: $request->payload,
+            metadata: $request->metadata,
+            timeoutSeconds: $request->timeoutSeconds,
         );
     }
 

@@ -6,6 +6,7 @@ namespace GrpcLiteGax\Tests\Support;
 
 use GrpcLiteGax\Backend\Franken\FrankenGrpcBridge;
 use GrpcLiteGax\Backend\Franken\FrankenGrpcResponse;
+use GrpcLiteGax\Backend\ServerStreamingCall;
 
 final class FakeFrankenGrpcBridge implements FrankenGrpcBridge
 {
@@ -15,6 +16,9 @@ final class FakeFrankenGrpcBridge implements FrankenGrpcBridge
     /** @var list<FrankenGrpcResponse> */
     private array $responses = [];
 
+    /** @var list<ServerStreamingCall> */
+    private array $serverStreamingCalls = [];
+
     private bool $closed = false;
 
     private int $closeCallCount = 0;
@@ -22,6 +26,11 @@ final class FakeFrankenGrpcBridge implements FrankenGrpcBridge
     public function enqueueResponse(FrankenGrpcResponse $response): void
     {
         $this->responses[] = $response;
+    }
+
+    public function enqueueServerStreamingCall(ServerStreamingCall $call): void
+    {
+        $this->serverStreamingCalls[] = $call;
     }
 
     /**
@@ -46,6 +55,30 @@ final class FakeFrankenGrpcBridge implements FrankenGrpcBridge
         }
 
         return array_shift($this->responses);
+    }
+
+    /**
+     * @param array<string, list<string>> $metadata
+     */
+    #[\Override]
+    public function serverStreamingCall(
+        string $path,
+        string $payload,
+        array $metadata,
+        ?float $timeoutSeconds,
+    ): ServerStreamingCall {
+        $this->calls[] = [
+            'path' => $path,
+            'payload' => $payload,
+            'metadata' => $metadata,
+            'timeoutSeconds' => $timeoutSeconds,
+        ];
+
+        if ($this->serverStreamingCalls === []) {
+            throw new \UnderflowException('FakeFrankenGrpcBridge has no queued server streaming call.');
+        }
+
+        return array_shift($this->serverStreamingCalls);
     }
 
     #[\Override]

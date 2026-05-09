@@ -27,6 +27,7 @@
       "GrpcLiteGax\\Tests\\": "tests/"
     },
     "files": [
+      "tests/Support/FrankenGrpcExtensionStubs.php",
       "tests/Support/GrpcLiteExtensionStubs.php"
     ]
   },

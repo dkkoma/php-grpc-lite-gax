@@ -19,5 +19,15 @@ interface FrankenGrpcBridge
         ?float $timeoutSeconds,
     ): FrankenGrpcResponse;
 
+    /**
+     * @param array<string, list<string>> $metadata
+     */
+    public function serverStreamingCall(
+        string $path,
+        string $payload,
+        array $metadata,
+        ?float $timeoutSeconds,
+    ): \GrpcLiteGax\Backend\ServerStreamingCall;
+
     public function close(): void;
 }

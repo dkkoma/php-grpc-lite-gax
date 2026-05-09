@@ -39,6 +39,7 @@ final class FrankenGrpcBackendContractTest extends UnaryBackendContractTestCase
             statusCode: $response->grpcStatusCode,
             statusMessage: $response->statusMessage,
             metadata: $response->metadata,
+            trailingMetadata: $response->trailingMetadata,
         ));
 
         return new FrankenGrpcBackend($bridge);

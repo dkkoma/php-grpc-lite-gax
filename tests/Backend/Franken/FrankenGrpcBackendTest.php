@@ -8,8 +8,10 @@ use GrpcLiteGax\Backend\BackendClosedException;
 use GrpcLiteGax\Backend\Franken\FrankenGrpcBackend;
 use GrpcLiteGax\Backend\Franken\FrankenGrpcResponse;
 use GrpcLiteGax\Backend\GrpcStatusCode;
+use GrpcLiteGax\Backend\ServerStreamingRequest;
 use GrpcLiteGax\Backend\UnaryRequest;
 use GrpcLiteGax\Tests\Support\FakeFrankenGrpcBridge;
+use GrpcLiteGax\Tests\Support\FakeServerStreamingCall;
 use PHPUnit\Framework\TestCase;
 
 final class FrankenGrpcBackendTest extends TestCase
@@ -48,7 +50,7 @@ final class FrankenGrpcBackendTest extends TestCase
             payload: '',
             statusCode: GrpcStatusCode::UNAVAILABLE,
             statusMessage: 'unavailable',
-            metadata: ['grpc-status-details-bin' => ['value']],
+            trailingMetadata: ['grpc-status-details-bin' => ['value']],
         ));
         $backend = new FrankenGrpcBackend($bridge);
 
@@ -56,7 +58,30 @@ final class FrankenGrpcBackendTest extends TestCase
 
         self::assertSame(GrpcStatusCode::UNAVAILABLE, $response->grpcStatusCode);
         self::assertSame('unavailable', $response->statusMessage);
-        self::assertSame(['grpc-status-details-bin' => ['value']], $response->metadata);
+        self::assertSame(['grpc-status-details-bin' => ['value']], $response->trailingMetadata);
+    }
+
+    public function testDelegatesServerStreamingRequestToBridge(): void
+    {
+        $bridge = new FakeFrankenGrpcBridge();
+        $bridge->enqueueServerStreamingCall(new FakeServerStreamingCall(['response-payload']));
+        $backend = new FrankenGrpcBackend($bridge);
+
+        $call = $backend->start(new ServerStreamingRequest(
+            service: 'service.v1.Service',
+            method: 'List',
+            payload: 'request-payload',
+            metadata: ['request-header' => ['value']],
+            timeoutSeconds: 2.5,
+        ));
+
+        self::assertSame(['response-payload'], iterator_to_array($call->responses()));
+        self::assertSame([
+            'path' => '/service.v1.Service/List',
+            'payload' => 'request-payload',
+            'metadata' => ['request-header' => ['value']],
+            'timeoutSeconds' => 2.5,
+        ], $bridge->lastCall());
     }
 
     public function testCloseDelegatesToBridgeAndRejectsLaterCalls(): void
@@ -73,5 +98,16 @@ final class FrankenGrpcBackendTest extends TestCase
         $this->expectException(BackendClosedException::class);
 
         $backend->call(new UnaryRequest('service.v1.Service', 'Method', 'request-payload'));
+    }
+
+    public function testRejectsServerStreamingCallsAfterClose(): void
+    {
+        $backend = new FrankenGrpcBackend(new FakeFrankenGrpcBridge());
+
+        $backend->close();
+
+        $this->expectException(BackendClosedException::class);
+
+        $backend->start(new ServerStreamingRequest('service.v1.Service', 'List', 'request-payload'));
     }
 }
