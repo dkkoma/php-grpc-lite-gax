@@ -11,8 +11,12 @@
         </testsuite>
         <testsuite name="native-smoke">
             <directory>tests/Integration</directory>
+            <exclude>tests/Integration/Franken</exclude>
             <exclude>tests/Integration/PubSub</exclude>
             <exclude>tests/Integration/Spanner</exclude>
+        </testsuite>
+        <testsuite name="franken-smoke">
+            <directory>tests/Integration/Franken</directory>
         </testsuite>
         <testsuite name="spanner-smoke">
             <directory>tests/Integration/Spanner</directory>

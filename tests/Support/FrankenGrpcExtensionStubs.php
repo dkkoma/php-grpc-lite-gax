@@ -8,6 +8,8 @@ namespace FrankenGrpc {
     if (!class_exists(Channel::class, false)) {
         final class Channel
         {
+            public const CODEX_TEST_STUB = true;
+
             /** @var list<self> */
             public static array $instances = [];
 

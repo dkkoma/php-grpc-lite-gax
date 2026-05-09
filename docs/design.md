@@ -39,13 +39,13 @@ Server streaming calls send initial metadata, one request message, and close-fro
 
 ## FrankenPHP Extension
 
-The FrankenPHP grpc-go path targets the `FrankenGrpc` PHP extension API from `/Users/daisuke/src/frankenphp-grpc-go-client`. `FrankenGrpcNativeBridge` adapts `FrankenGrpc\Channel`, `UnaryCall`, `ServerStreamingCall`, `UnaryResult`, and `Status` to the repository backend contracts. Unary responses map initial metadata and trailing metadata separately. Server streaming exposes the native read loop as `ServerStreamingCall::responses()`, maps final status to `GrpcStatusCode`, and falls back to `Status::$metadata` when native trailing metadata is empty.
+The FrankenPHP grpc-go path targets the `FrankenGrpc` PHP extension API from `/Users/daisuke/src/frankenphp-grpc-go-client`. `FrankenGrpcTransport::build()` is the user-facing construction path. `FrankenGrpcNativeBridge` adapts `FrankenGrpc\Channel`, `UnaryCall`, `ServerStreamingCall`, `UnaryResult`, and `Status` to the repository backend contracts. Unary responses map initial metadata and trailing metadata separately. Server streaming exposes the native read loop as `ServerStreamingCall::responses()`, maps final status to `GrpcStatusCode`, and falls back to `Status::$metadata` when native trailing metadata is empty.
 
 `docs/frankenphp-extension-api.md` remains the cross-repository contract for the byte-level extension API, including unary, server streaming, metadata, deadline, status, cancellation, and lifecycle requirements.
 
 ## Smoke Coverage
 
-`composer test:native-smoke` verifies the real `php-grpc-lite` extension surface. Emulator smoke suites are fail-closed and require their host environment variables.
+`composer test:native-smoke` verifies the real `php-grpc-lite` extension surface. `composer test:franken-smoke` is reserved for the real `FrankenGrpc` extension and fails if the repository test stub is loaded; it is not part of default `verify` until the FrankenPHP extension is available in this repository's test image. Emulator smoke suites are fail-closed and require their host environment variables.
 
 `composer test:pubsub-smoke` runs against a Pub/Sub emulator with `google/cloud-pubsub` generated clients, using this repository's `GrpcLiteTransport`. It creates a topic and subscription, publishes a message, pulls it, and acknowledges it.
 
