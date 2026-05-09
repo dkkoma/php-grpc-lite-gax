@@ -11,7 +11,8 @@
     "google/cloud-spanner": "^2.7",
     "phpstan/phpstan": "^2.0",
     "phpunit/phpunit": "^12.0",
-    "squizlabs/php_codesniffer": "^4.0"
+    "squizlabs/php_codesniffer": "^4.0",
+    "google/cloud-pubsub": "^2.19"
   },
   "suggest": {
     "dkkoma/php-grpc-lite": "Install the php-grpc-lite source-built grpc extension for GrpcLiteTransport::build()."
@@ -38,6 +39,7 @@
     ],
     "test": "phpunit --testsuite unit",
     "test:native-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite native-smoke",
+    "test:pubsub-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite pubsub-smoke",
     "test:spanner-smoke": "php -d extension=grpc.so vendor/bin/phpunit --testsuite spanner-smoke",
     "test:coverage": "XDEBUG_MODE=coverage phpunit --testsuite unit --coverage-text",
     "validate-project": "composer validate --strict",
@@ -49,6 +51,7 @@
     ],
     "verify:smoke": [
       "@test:native-smoke",
+      "@test:pubsub-smoke",
       "@test:spanner-smoke"
     ]
   }
