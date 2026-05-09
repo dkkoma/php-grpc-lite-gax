@@ -23,7 +23,7 @@ Google\ApiCore\Transport\TransportInterface
 
 `UnaryResponse` contains the serialized response payload, canonical gRPC status, status message, initial metadata, and trailing/status metadata. Non-OK unary responses are mapped to `Google\ApiCore\ApiException`.
 
-`ServerStreamingCall` exposes an iterable of serialized response payloads plus final status, initial metadata, trailing metadata, peer, and cancellation. `BackendServerStreamingCall` decodes each payload into the GAX response type and lets `Google\ApiCore\ServerStream` check the final status.
+`ServerStreamingCall` exposes an iterable of serialized response payloads plus final status, initial metadata, trailing metadata, peer, and cancellation. `BackendServerStreamingCall` decodes each payload into the GAX response type and lets `Google\ApiCore\ServerStream` check the final status. Backend failures from response iteration, status reads, metadata access, peer access, and cancellation are mapped to GAX `UNAVAILABLE` failures.
 
 `close()` is idempotent on backends. After close, backend calls must fail predictably with `BackendClosedException`.
 
@@ -33,14 +33,18 @@ Google\ApiCore\Transport\TransportInterface
 
 Unary calls send initial metadata, one request message, and close-from-client in a single batch, then receive initial metadata, one response message, and client status.
 
-Server streaming calls send initial metadata, one request message, and close-from-client, then receive initial metadata plus messages until the native call returns no message. Final status is read separately with `OP_RECV_STATUS_ON_CLIENT`. Unknown integer status values map to `GrpcStatusCode::UNKNOWN`; malformed native status is a backend failure and is mapped by `AbstractGrpcTransport` to `UNAVAILABLE`.
+Server streaming calls send initial metadata, one request message, and close-from-client, then receive initial metadata plus messages until the native call returns no message. Initial metadata is cached so direct metadata access cannot desynchronize later response iteration. Final status is read separately with `OP_RECV_STATUS_ON_CLIENT`. Unknown integer status values map to `GrpcStatusCode::UNKNOWN`; malformed native status is a backend failure and is mapped by `AbstractGrpcTransport` to `UNAVAILABLE`.
 
 `GrpcLiteTransport::build()` is the user-facing construction path. Runtime users provide an endpoint and optional channel options. The Dev Container builds `dkkoma/php-grpc-lite` as `grpc.so` but does not load it by default, so unit tests use stubs. Native and emulator smoke scripts explicitly load `grpc.so`.
 
 ## Smoke Coverage
 
-`composer test:native-smoke` verifies the real `php-grpc-lite` extension surface. `composer test:spanner-smoke` runs against a Spanner emulator with `google/cloud-spanner` generated clients, using this repository's `GrpcLiteTransport`. It creates an instance and database, executes DML in a read-write transaction, commits, and verifies `ExecuteStreamingSql` with a streaming `SELECT`.
+`composer test:native-smoke` verifies the real `php-grpc-lite` extension surface. Emulator smoke suites are fail-closed and require their host environment variables.
+
+`composer test:pubsub-smoke` runs against a Pub/Sub emulator with `google/cloud-pubsub` generated clients, using this repository's `GrpcLiteTransport`. It creates a topic and subscription, publishes a message, pulls it, and acknowledges it.
+
+`composer test:spanner-smoke` runs against a Spanner emulator with `google/cloud-spanner` generated clients, using this repository's `GrpcLiteTransport`. It creates an instance and database, executes DML in a read-write transaction, commits, and verifies `ExecuteStreamingSql` with a streaming `SELECT`.
 
 ## Current Scope
 
-The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, `AbstractGrpcTransport`, `GrpcLiteTransport`, unary and server-streaming backend contracts, `FakeBackend`, `FrankenGrpcBackend`, `GrpcLiteBackend`, contract tests, native smoke tests, and Spanner emulator smoke tests.
+The current implementation includes Composer package setup, PHPStan level max, PHPCS, PHPUnit, `AbstractGrpcTransport`, `GrpcLiteTransport`, unary and server-streaming backend contracts, `FakeBackend`, `FrankenGrpcBackend`, `GrpcLiteBackend`, contract tests, native smoke tests, Pub/Sub emulator smoke tests, and Spanner emulator smoke tests.
